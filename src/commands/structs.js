@@ -232,17 +232,86 @@ async function handleIdLookup(interaction, type, index) {
         switch (type) {
             case ObjectType.GUILD:
                 result = await db.query(
-                    `SELECT * FROM guilds WHERE id = $1`,
+                    `SELECT 
+                        guild.id,
+                        guild.primary_reactor_id,
+                        guild.entry_substation_id,
+                        structs.UNIT_DISPLAY_FORMAT(guild.join_infusion_minimum_p,'ualpha') as join_infusion_minimum,
+                        guild_meta.name,
+                        guild_meta.description,
+                        guild_meta.tag,
+                        guild_meta.logo,
+                        guild_meta.website 
+                    FROM 
+                        structs.guild 
+                        left join structs.guild_meta on guild.id=guild_meta.id 
+                    WHERE guild.id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
-                    embed = createGuildEmbed(result.rows[0]);
+                    const guild = result.rows[0];
+                    const embeds = [createGuildEmbed(guild)];
+
+                    // Fetch and add primary reactor embed if it exists
+                    if (guild.primary_reactor_id) {
+                        const reactorResult = await db.query(
+                            `SELECT                        
+                                id as reactor_id,
+                                guild_id,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='1-' || reactor.id),0),'ualpha') as fuel,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || reactor.id),0),'milliwatt') as load,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || reactor.id),0),'milliwatt') as capacity
+                            FROM structs.reactor
+                            WHERE id = $1`,
+                            [guild.primary_reactor_id]
+                        );
+                        if (reactorResult.rows.length > 0) {
+                            embeds.push(createReactorEmbed(reactorResult.rows[0]));
+                        }
+                    }
+
+                    // Fetch and add entry substation embed if it exists
+                    if (guild.entry_substation_id) {
+                        const substationResult = await db.query(
+                            `SELECT
+                                id as substation_id,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || substation.id),0),'milliwatt') as load,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || substation.id),0),'milliwatt') as capacity,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='6-' || substation.id),0),'milliwatt') as connection_capacity,
+                                COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='7-' || substation.id),0) as connection_count
+                            FROM structs.substation
+                            WHERE id = $1`,
+                            [guild.entry_substation_id]
+                        );
+                        if (substationResult.rows.length > 0) {
+                            embeds.push(createSubstationEmbed(substationResult.rows[0]));
+                        }
+                    }
+
+                    await interaction.reply({ embeds });
                 }
                 break;
 
             case ObjectType.PLAYER:
                 result = await db.query(
-                    `SELECT * FROM players WHERE id = $1`,
+                    `SELECT
+                        player.id as player_id,
+                        player_meta.username,
+                        (select guild_meta.name from structs.guild_meta where guild_meta.id = player.guild_id) as guild_name,
+                        player.substation_id,
+                        player.planet_id,
+                        player.fleet_id,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='ore'),0),'ore') as ore,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0),'milliwatt') as load,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as structs_load,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0),'milliwatt') as capacity,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt') as connection_capacity,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as total_load,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt')  as total_capacity,
+                        player.primary_address
+                    FROM structs.player 
+                    LEFT JOIN structs.player_meta ON player.id = player_meta.id
+                    WHERE player.id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
@@ -252,10 +321,32 @@ async function handleIdLookup(interaction, type, index) {
 
             case ObjectType.PLANET:
                 result = await db.query(
-                    `SELECT p.*, pa.last_active 
-                    FROM planets p 
-                    LEFT JOIN planet_activity pa ON p.id = pa.planet_id 
-                    WHERE p.id = $1`,
+                    `SELECT
+                        id as planet_id,
+                        structs.UNIT_DISPLAY_FORMAT(max_ore,'ore') as max_ore,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='0-' || planet.id),0),'ore') as buried_ore,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='0-' || planet.owner),0),'ore') as vulnerable_ore,
+
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='0-' || planet.id),0) as  planetary_shield,
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='1-' || planet.id),0) as  repair_network_quantity,
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='2-' || planet.id),0) as  defensive_cannon_quantity,
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='3-' || planet.id),0) as  coordinated_global_shield_network_quantity,
+
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='4-' || planet.id),0) as  low_orbit_ballistics_interceptor_network_quantity,
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='5-' || planet.id),0) as  advanced_low_orbit_ballistics_interceptor_network_quantity,
+
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='6-' || planet.id),0) as  lobi_network_success_rate_numerator,
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='7-' || planet.id),0) as  lobi_network_success_rate_denominator,
+
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='8-' || planet.id),0) as  orbital_jamming_station_quantity,
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='9-' || planet.id),0) as  advanced_orbital_jamming_station_quantity,
+
+                        COALESCE((SELECT planet_attribute.val FROM structs.planet_attribute WHERE planet_attribute.id='10-' || planet.id),0) as  block_start_raid,
+
+                        owner,
+                        status
+                    FROM structs.planet
+                    WHERE id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
@@ -265,10 +356,14 @@ async function handleIdLookup(interaction, type, index) {
 
             case ObjectType.REACTOR:
                 result = await db.query(
-                    `SELECT r.*, rt.name as reactor_type_name 
-                    FROM reactors r 
-                    JOIN reactor_types rt ON r.reactor_type_id = rt.id 
-                    WHERE r.id = $1`,
+                    `SELECT                        
+                        id as reactor_id,
+                        guild_id,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='1-' || reactor.id),0),'ualpha') as fuel,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || reactor.id),0),'milliwatt') as load,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || reactor.id),0),'milliwatt') as capacity
+                    FROM structs.reactor
+                    WHERE id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
@@ -278,10 +373,14 @@ async function handleIdLookup(interaction, type, index) {
 
             case ObjectType.SUBSTATION:
                 result = await db.query(
-                    `SELECT s.*, st.name as substation_type_name 
-                    FROM substations s 
-                    JOIN substation_types st ON s.substation_type_id = st.id 
-                    WHERE s.id = $1`,
+                    `SELECT
+                        id as substation_id,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || substation.id),0),'milliwatt') as load,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || substation.id),0),'milliwatt') as capacity,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='6-' || substation.id),0),'milliwatt') as connection_capacity,
+                        COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='7-' || substation.id),0) as connection_count
+                    FROM structs.substation
+                    WHERE id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
@@ -291,27 +390,113 @@ async function handleIdLookup(interaction, type, index) {
 
             case ObjectType.STRUCT:
                 result = await db.query(
-                    `SELECT s.*, st.name as struct_type_name 
-                    FROM structs s 
-                    JOIN struct_types st ON s.struct_type_id = st.id 
-                    WHERE s.id = $1`,
+                    `SELECT
+                        struct.id as struct_id,
+                        index,
+
+                        location_type,
+                        location_id,
+                        operating_ambit,
+                        slot,
+
+                        COALESCE((SELECT struct_attribute.val FROM structs.struct_attribute WHERE struct_attribute.id='0-' || struct.id),0) as  health,
+                        struct_type.max_health,
+                        
+                        -- Only display if status built is false
+                        COALESCE((SELECT struct_attribute.val FROM structs.struct_attribute WHERE struct_attribute.id='2-' || struct.id),0) as  block_start_build,
+                        struct_type.build_difficulty,
+                        
+                        -- Only display if planetary_mining != noPlanetaryMining
+                        COALESCE((SELECT struct_attribute.val FROM structs.struct_attribute WHERE struct_attribute.id='3-' || struct.id),0) as  block_start_ore_mine,
+
+                        -- Only display if planetary_refinery != noPlanetaryRefinery
+                        COALESCE((SELECT struct_attribute.val FROM structs.struct_attribute WHERE struct_attribute.id='4-' || struct.id),0) as  block_start_ore_refine,
+
+                        -- Only display these if power_generation != noPowerGeneration
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='1-' || struct.id),0),'ualpha') as generator_fuel,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || struct.id),0),'milliwatt') as generator_load,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || struct.id),0),'milliwatt') as generator_capacity,
+
+                        struct_type.category,
+                        struct_type.type,
+                        structs.UNIT_DISPLAY_FORMAT(struct_type.passive_draw,'milliwatt') as passive_draw,
+
+                        struct_type.primary_weapon,
+                        struct_type.secondary_weapon,
+                        
+                        struct.owner,
+
+                        -- not to display, just for the use listed above
+                        struct_type.planetary_mining,
+                        struct_type.planetary_refinery,
+                        struct_type.power_generation
+                    FROM structs.struct, structs.struct_type
+                    WHERE struct_type.id = struct.type and struct.id = $1`,
                     [fullId]
                 );
+
                 if (result.rows.length > 0) {
-                    embed = createStructEmbed(result.rows[0]);
+                    const struct = result.rows[0];
+                    
+                    // Get status information
+                    const statusResult = await db.query(
+                        `SELECT
+                            struct_attribute.object_id as struct_id,
+                            (struct_attribute.val & 1) > 0 as materialized,
+                            (struct_attribute.val & 2) > 0 as built,
+                            (struct_attribute.val & 4) > 0 as online,
+                            (struct_attribute.val & 8) > 0 as stored,
+                            (struct_attribute.val & 16) > 0 as hidden,
+                            (struct_attribute.val & 32) > 0 as destroyed,
+                            (struct_attribute.val & 64) > 0 as locked,
+                            struct_attribute.updated_at
+                        FROM structs.struct_attribute
+                        WHERE struct_attribute.attribute_type = 'status'
+                            and struct_attribute.object_id = $1`,
+                        [fullId]
+                    );
+
+                    const status = statusResult.rows[0] || {};
+                    embed = createStructEmbed(struct, status);
                 }
                 break;
 
             case ObjectType.ALLOCATION:
                 result = await db.query(
-                    `SELECT a.*, at.name as allocation_type_name 
-                    FROM allocations a 
-                    JOIN allocation_types at ON a.allocation_type_id = at.id 
-                    WHERE a.id = $1`,
+                    `SELECT 
+                        id,
+                        allocation_type,
+                        source_id,
+                        destination_id,
+                        controller,
+                        structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='5-' || allocation.id),0),'milliwatt') as capacity
+                    FROM structs.allocation
+                    WHERE id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
-                    embed = createAllocationEmbed(result.rows[0]);
+                    const allocation = result.rows[0];
+                    const embeds = [createAllocationEmbed(allocation)];
+
+                    // Fetch and add substation embed if it exists
+                    if (allocation.destination_id) {
+                        const substationResult = await db.query(
+                            `SELECT
+                                id as substation_id,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || substation.id),0),'milliwatt') as load,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || substation.id),0),'milliwatt') as capacity,
+                                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='6-' || substation.id),0),'milliwatt') as connection_capacity,
+                                COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='7-' || substation.id),0) as connection_count
+                            FROM structs.substation
+                            WHERE id = $1`,
+                            [allocation.destination_id]
+                        );
+                        if (substationResult.rows.length > 0) {
+                            embeds.push(createSubstationEmbed(substationResult.rows[0]));
+                        }
+                    }
+
+                    await interaction.reply({ embeds });
                 }
                 break;
 
@@ -330,7 +515,20 @@ async function handleIdLookup(interaction, type, index) {
 
             case ObjectType.PROVIDER:
                 result = await db.query(
-                    `SELECT * FROM providers WHERE id = $1`,
+                    `SELECT 
+                        id, 
+                        substation_id,
+                        structs.UNIT_DISPLAY_FORMAT(rate_amount, rate_demon) as rate,
+                        access_policy,
+                        structs.UNIT_DISPLAY_FORMAT(capacity_minimum,'milliwatt') as capacity_minimum,
+                        structs.UNIT_DISPLAY_FORMAT(capacity_maximum,'milliwatt') as capacity_maximum,
+                        duration_minimum,
+                        duration_maximum,
+                        provider_cancellation_pentalty,
+                        consumer_cacellation_pentalty,
+                        owner
+                    FROM structs.provider 
+                    WHERE id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
@@ -340,15 +538,47 @@ async function handleIdLookup(interaction, type, index) {
 
             case ObjectType.AGREEMENT:
                 result = await db.query(
-                    `SELECT a.*, p.name as provider_name, c.name as consumer_name 
-                    FROM agreements a 
-                    JOIN providers p ON a.provider_id = p.id 
-                    JOIN consumers c ON a.consumer_id = c.id 
-                    WHERE a.id = $1`,
+                    `SELECT
+                        id,
+                        provider_id,
+                        structs.UNIT_DISPLAY_FORMAT(capacity,'milliwatt') as capacity,
+                        allocation_id,
+                        end_block,
+                        (end_block - start_block) as duration,
+                        owner 
+                    FROM structs.agreement
+                    WHERE id = $1`,
                     [fullId]
                 );
                 if (result.rows.length > 0) {
-                    embed = createAgreementEmbed(result.rows[0]);
+                    const agreement = result.rows[0];
+                    const embeds = [createAgreementEmbed(agreement)];
+
+                    // Fetch and add provider embed if it exists
+                    if (agreement.provider_id) {
+                        const providerResult = await db.query(
+                            `SELECT 
+                                id, 
+                                substation_id,
+                                structs.UNIT_DISPLAY_FORMAT(rate_amount, rate_demon) as rate,
+                                access_policy,
+                                structs.UNIT_DISPLAY_FORMAT(capacity_minimum,'milliwatt') as capacity_minimum,
+                                structs.UNIT_DISPLAY_FORMAT(capacity_maximum,'milliwatt') as capacity_maximum,
+                                duration_minimum,
+                                duration_maximum,
+                                provider_cancellation_pentalty,
+                                consumer_cacellation_pentalty,
+                                owner
+                            FROM structs.provider 
+                            WHERE id = $1`,
+                            [agreement.provider_id]
+                        );
+                        if (providerResult.rows.length > 0) {
+                            embeds.push(createProviderEmbed(providerResult.rows[0]));
+                        }
+                    }
+
+                    await interaction.reply({ embeds });
                 }
                 break;
 
@@ -375,9 +605,24 @@ async function handleIdLookup(interaction, type, index) {
 async function handleAddressLookup(interaction, address) {
     try {
         const result = await db.query(
-            `SELECT p.* 
-            FROM players p 
-            WHERE p.address = $1`,
+            `SELECT
+                player.id as player_id,
+                player_meta.username,
+                (select guild_meta.name from structs.guild_meta where guild_meta.id = player.guild_id) as guild_name,
+                player.substation_id,
+                player.planet_id,
+                player.fleet_id,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='ore'),0),'ore') as ore,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0),'milliwatt') as load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as structs_load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0),'milliwatt') as capacity,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt') as connection_capacity,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as total_load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt')  as total_capacity,
+                player.primary_address
+            FROM structs.player 
+            LEFT JOIN structs.player_meta ON player.id = player_meta.id
+            WHERE player.id = (select player_address.player_id from structs.player_address where player_address.address = $1)`,
             [address]
         );
 
@@ -403,9 +648,24 @@ async function handleDiscordLookup(interaction, mention) {
         const discordId = mention.replace(/[<@!>]/g, '');
         
         const result = await db.query(
-            `SELECT p.* 
-            FROM players p 
-            WHERE p.discord_id = $1`,
+            `SELECT
+                player.id as player_id,
+                player_meta.username,
+                (select guild_meta.name from structs.guild_meta where guild_meta.id = player.guild_id) as guild_name,
+                player.substation_id,
+                player.planet_id,
+                player.fleet_id,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='ore'),0),'ore') as ore,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0),'milliwatt') as load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as structs_load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0),'milliwatt') as capacity,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt') as connection_capacity,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as total_load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt')  as total_capacity,
+                player.primary_address
+            FROM structs.player 
+            LEFT JOIN structs.player_meta ON player.id = player_meta.id
+            WHERE player_meta.username = $1`,
             [discordId]
         );
 
@@ -453,9 +713,20 @@ async function handleTokenLookup(interaction, token) {
 async function handleTagLookup(interaction, tag) {
     try {
         const result = await db.query(
-            `SELECT g.* 
-            FROM guilds g 
-            WHERE g.tag = $1`,
+            `SELECT 
+                guild.id,
+                guild.primary_reactor_id,
+                guild.entry_substation_id,
+                structs.UNIT_DISPLAY_FORMAT(guild.join_infusion_minimum_p,'ualpha') as join_infusion_minimum,
+                guild_meta.name,
+                guild_meta.description,
+                guild_meta.tag,
+                guild_meta.logo,
+                guild_meta.website 
+            FROM 
+                structs.guild 
+                left join structs.guild_meta on guild.id=guild_meta.id 
+            WHERE guild_meta.tag = $1`,
             [tag]
         );
 
@@ -464,8 +735,46 @@ async function handleTagLookup(interaction, tag) {
             return;
         }
 
-        const embed = createGuildEmbed(result.rows[0]);
-        await interaction.reply({ embeds: [embed] });
+        const guild = result.rows[0];
+        const embeds = [createGuildEmbed(guild)];
+
+        // Fetch and add primary reactor embed if it exists
+        if (guild.primary_reactor_id) {
+            const reactorResult = await db.query(
+                `SELECT                        
+                    id as reactor_id,
+                    guild_id,
+                    structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='1-' || reactor.id),0),'ualpha') as fuel,
+                    structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || reactor.id),0),'milliwatt') as load,
+                    structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || reactor.id),0),'milliwatt') as capacity
+                FROM structs.reactor
+                WHERE id = $1`,
+                [guild.primary_reactor_id]
+            );
+            if (reactorResult.rows.length > 0) {
+                embeds.push(createReactorEmbed(reactorResult.rows[0]));
+            }
+        }
+
+        // Fetch and add entry substation embed if it exists
+        if (guild.entry_substation_id) {
+            const substationResult = await db.query(
+                `SELECT
+                    id as substation_id,
+                    structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='3-' || substation.id),0),'milliwatt') as load,
+                    structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='2-' || substation.id),0),'milliwatt') as capacity,
+                    structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='6-' || substation.id),0),'milliwatt') as connection_capacity,
+                    COALESCE((SELECT grid.val FROM structs.grid WHERE grid.id='7-' || substation.id),0) as connection_count
+                FROM structs.substation
+                WHERE id = $1`,
+                [guild.entry_substation_id]
+            );
+            if (substationResult.rows.length > 0) {
+                embeds.push(createSubstationEmbed(substationResult.rows[0]));
+            }
+        }
+
+        await interaction.reply({ embeds });
     } catch (error) {
         console.error('Error in handleTagLookup:', error);
         await interaction.reply({ 
@@ -479,9 +788,12 @@ function createGuildEmbed(guild) {
     return {
         title: `Guild Information (${guild.id})`,
         fields: [
-            { name: 'Name', value: guild.name, inline: true },
-            { name: 'Created At', value: new Date(guild.created_at).toLocaleString(), inline: true },
-            { name: 'Member Count', value: guild.member_count.toString(), inline: true },
+            { name: 'Name', value: guild.name || 'Unnamed Guild', inline: true },
+            { name: 'Tag', value: guild.tag || 'No Tag', inline: true },
+            { name: 'Primary Reactor', value: guild.primary_reactor_id ? `Reactor ${guild.primary_reactor_id}` : 'None', inline: true },
+            { name: 'Entry Substation', value: guild.entry_substation_id ? `Substation ${guild.entry_substation_id}` : 'None', inline: true },
+            { name: 'Join Minimum', value: guild.join_infusion_minimum, inline: true },
+            { name: 'Website', value: guild.website || 'No Website', inline: true },
             { name: 'Description', value: guild.description || 'No description', inline: false }
         ],
         color: 0x0099FF
@@ -490,46 +802,113 @@ function createGuildEmbed(guild) {
 
 function createPlayerEmbed(player) {
     return {
-        title: `Player Information (${player.id})`,
+        title: `Player Information (${player.player_id})`,
         fields: [
-            { name: 'Name', value: player.name, inline: true },
-            { name: 'Discord ID', value: player.discord_id, inline: true },
-            { name: 'Created At', value: new Date(player.created_at).toLocaleString(), inline: true },
-            { name: 'Last Active', value: new Date(player.last_active).toLocaleString(), inline: true },
-            { name: 'Resources', value: `Metal: ${player.metal}\nCrystal: ${player.crystal}\nDeuterium: ${player.deuterium}`, inline: false }
+            { name: 'Username', value: player.username || 'Unknown', inline: true },
+            { name: 'Guild', value: player.guild_name || 'No Guild', inline: true },
+            { name: 'Address', value: player.primary_address || 'No Address', inline: true },
+            { name: 'Substation', value: player.substation_id ? `Substation ${player.substation_id}` : 'None', inline: true },
+            { name: 'Planet', value: player.planet_id ? `Planet ${player.planet_id}` : 'None', inline: true },
+            { name: 'Fleet', value: player.fleet_id ? `Fleet ${player.fleet_id}` : 'None', inline: true },
+            { name: 'Resources', value: `Ore: ${player.ore}`, inline: true },
+            { name: 'Power Load', value: `Base: ${player.load}\nStructs: ${player.structs_load}\nTotal: ${player.total_load}`, inline: true },
+            { name: 'Power Capacity', value: `Base: ${player.capacity}\nConnection: ${player.connection_capacity}\nTotal: ${player.total_capacity}`, inline: true }
         ],
         color: 0x0099FF
     };
 }
 
 function createPlanetEmbed(planet) {
+    const lobiSuccessRate = planet.lobi_network_success_rate_denominator > 0 
+        ? (planet.lobi_network_success_rate_numerator / planet.lobi_network_success_rate_denominator * 100).toFixed(1) + '%'
+        : '0%';
+
     return {
-        title: `Planet Information (${planet.id})`,
+        title: `Planet Information (${planet.planet_id})`,
         fields: [
-            { name: 'Name', value: planet.name, inline: true },
-            { name: 'Owner', value: `<@${planet.owner_id}>`, inline: true },
-            { name: 'Coordinates', value: `X: ${planet.x}, Y: ${planet.y}`, inline: true },
-            { name: 'Population', value: planet.population.toString(), inline: true },
-            { name: 'Last Active', value: planet.last_active ? new Date(planet.last_active).toLocaleString() : 'Never', inline: true },
-            { name: 'Resources', value: `Metal: ${planet.metal}\nCrystal: ${planet.crystal}\nDeuterium: ${planet.deuterium}`, inline: false }
+            { name: 'Owner', value: `<@${planet.owner}>`, inline: true },
+            { name: 'Status', value: planet.status, inline: true },
+            { name: 'Ore', value: `Max: ${planet.max_ore}\nBuried: ${planet.buried_ore}\nVulnerable: ${planet.vulnerable_ore}`, inline: true },
+            { name: 'Defenses', value: `Planetary Shield: ${planet.planetary_shield}\nRepair Network: ${planet.repair_network_quantity}\nDefensive Cannons: ${planet.defensive_cannon_quantity}`, inline: true },
+            { name: 'Shield Network', value: `Coordinated Global Shield: ${planet.coordinated_global_shield_network_quantity}`, inline: true },
+            { name: 'Interceptor Networks', value: `LOBI: ${planet.low_orbit_ballistics_interceptor_network_quantity}\nAdvanced LOBI: ${planet.advanced_low_orbit_ballistics_interceptor_network_quantity}`, inline: true },
+            { name: 'LOBI Success Rate', value: lobiSuccessRate, inline: true },
+            { name: 'Jamming Stations', value: `Orbital: ${planet.orbital_jamming_station_quantity}\nAdvanced: ${planet.advanced_orbital_jamming_station_quantity}`, inline: true },
+            { name: 'Raid Protection', value: planet.block_start_raid ? 'Active' : 'Inactive', inline: true }
         ],
         color: 0x0099FF
     };
 }
 
-function createStructEmbed(struct) {
+function createStructEmbed(struct, status) {
+    const fields = [
+        { name: 'Owner', value: `<@${struct.owner}>`, inline: true },
+        { name: 'Location', value: `${struct.location_type} ${struct.location_id}`, inline: true },
+        { name: 'Slot', value: `${struct.operating_ambit} ${struct.slot}`, inline: true },
+        { name: 'Type', value: `${struct.category} ${struct.type}`, inline: true },
+        { name: 'Status', value: getStatusString(status), inline: true },
+        { name: 'Health', value: `${struct.health}/${struct.max_health}`, inline: true }
+    ];
+
+    // Add build information if not built
+    if (!status.built) {
+        fields.push(
+            { name: 'Build Status', value: struct.block_start_build ? 'Blocked' : 'Ready', inline: true },
+            { name: 'Build Difficulty', value: struct.build_difficulty.toString(), inline: true }
+        );
+    }
+
+    // Add mining information if applicable
+    if (struct.planetary_mining !== 'noPlanetaryMining') {
+        fields.push(
+            { name: 'Mining Status', value: struct.block_start_ore_mine ? 'Blocked' : 'Ready', inline: true }
+        );
+    }
+
+    // Add refining information if applicable
+    if (struct.planetary_refinery !== 'noPlanetaryRefinery') {
+        fields.push(
+            { name: 'Refining Status', value: struct.block_start_ore_refine ? 'Blocked' : 'Ready', inline: true }
+        );
+    }
+
+    // Add power information if applicable
+    if (struct.power_generation !== 'noPowerGeneration') {
+        fields.push(
+            { name: 'Power Generation', value: `Fuel: ${struct.generator_fuel}\nLoad: ${struct.generator_load}\nCapacity: ${struct.generator_capacity}`, inline: true }
+        );
+    }
+
+    // Add weapon information if present
+    if (struct.primary_weapon || struct.secondary_weapon) {
+        fields.push(
+            { name: 'Weapons', value: `Primary: ${struct.primary_weapon || 'None'}\nSecondary: ${struct.secondary_weapon || 'None'}`, inline: true }
+        );
+    }
+
+    // Add passive draw
+    fields.push(
+        { name: 'Passive Draw', value: struct.passive_draw, inline: true }
+    );
+
     return {
-        title: `Struct Information (${struct.id})`,
-        fields: [
-            { name: 'Type', value: struct.struct_type_name, inline: true },
-            { name: 'Owner', value: `<@${struct.owner_id}>`, inline: true },
-            { name: 'Status', value: struct.status, inline: true },
-            { name: 'Created At', value: new Date(struct.created_at).toLocaleString(), inline: true },
-            { name: 'Last Active', value: struct.last_active ? new Date(struct.last_active).toLocaleString() : 'Never', inline: true },
-            { name: 'Resources', value: `Metal: ${struct.metal}\nCrystal: ${struct.crystal}\nDeuterium: ${struct.deuterium}`, inline: false }
-        ],
+        title: `Struct Information (${struct.struct_id})`,
+        fields: fields,
         color: 0x0099FF
     };
+}
+
+function getStatusString(status) {
+    const statusFlags = [];
+    if (status.materialized) statusFlags.push('Materialized');
+    if (status.built) statusFlags.push('Built');
+    if (status.online) statusFlags.push('Online');
+    if (status.stored) statusFlags.push('Stored');
+    if (status.hidden) statusFlags.push('Hidden');
+    if (status.destroyed) statusFlags.push('Destroyed');
+    if (status.locked) statusFlags.push('Locked');
+    
+    return statusFlags.length > 0 ? statusFlags.join(', ') : 'Unknown';
 }
 
 function createFleetEmbed(fleet) {
@@ -551,12 +930,13 @@ function createProviderEmbed(provider) {
     return {
         title: `Provider Information (${provider.id})`,
         fields: [
-            { name: 'Name', value: provider.name, inline: true },
-            { name: 'Owner', value: `<@${provider.owner_id}>`, inline: true },
-            { name: 'Status', value: provider.status, inline: true },
-            { name: 'Created At', value: new Date(provider.created_at).toLocaleString(), inline: true },
-            { name: 'Last Active', value: provider.last_active ? new Date(provider.last_active).toLocaleString() : 'Never', inline: true },
-            { name: 'Resources', value: `Metal: ${provider.metal}\nCrystal: ${provider.crystal}\nDeuterium: ${provider.deuterium}`, inline: false }
+            { name: 'Owner', value: `<@${provider.owner}>`, inline: true },
+            { name: 'Substation', value: provider.substation_id ? `Substation ${provider.substation_id}` : 'None', inline: true },
+            { name: 'Access Policy', value: provider.access_policy, inline: true },
+            { name: 'Rate', value: provider.rate, inline: true },
+            { name: 'Capacity Range', value: `${provider.capacity_minimum} - ${provider.capacity_maximum}`, inline: true },
+            { name: 'Duration Range', value: `${provider.duration_minimum} - ${provider.duration_maximum} hours`, inline: true },
+            { name: 'Cancellation Penalties', value: `Provider: ${provider.provider_cancellation_pentalty}%\nConsumer: ${provider.consumer_cacellation_pentalty}%`, inline: true }
         ],
         color: 0x0099FF
     };
@@ -564,16 +944,12 @@ function createProviderEmbed(provider) {
 
 function createReactorEmbed(reactor) {
     return {
-        title: `Reactor Information (${reactor.id})`,
+        title: `Reactor Information (${reactor.reactor_id})`,
         fields: [
-            { name: 'Type', value: reactor.reactor_type_name, inline: true },
-            { name: 'Owner', value: `<@${reactor.owner_id}>`, inline: true },
-            { name: 'Status', value: reactor.status, inline: true },
-            { name: 'Created At', value: new Date(reactor.created_at).toLocaleString(), inline: true },
-            { name: 'Last Active', value: reactor.last_active ? new Date(reactor.last_active).toLocaleString() : 'Never', inline: true },
-            { name: 'Power Output', value: `${reactor.power_output} MW`, inline: true },
-            { name: 'Efficiency', value: `${reactor.efficiency}%`, inline: true },
-            { name: 'Resources', value: `Metal: ${reactor.metal}\nCrystal: ${reactor.crystal}\nDeuterium: ${reactor.deuterium}`, inline: false }
+            { name: 'Guild', value: reactor.guild_id ? `Guild ${reactor.guild_id}` : 'No Guild', inline: true },
+            { name: 'Fuel', value: reactor.fuel, inline: true },
+            { name: 'Load', value: reactor.load, inline: true },
+            { name: 'Capacity', value: reactor.capacity, inline: true }
         ],
         color: 0x0099FF
     };
@@ -581,16 +957,12 @@ function createReactorEmbed(reactor) {
 
 function createSubstationEmbed(substation) {
     return {
-        title: `Substation Information (${substation.id})`,
+        title: `Substation Information (${substation.substation_id})`,
         fields: [
-            { name: 'Type', value: substation.substation_type_name, inline: true },
-            { name: 'Owner', value: `<@${substation.owner_id}>`, inline: true },
-            { name: 'Status', value: substation.status, inline: true },
-            { name: 'Created At', value: new Date(substation.created_at).toLocaleString(), inline: true },
-            { name: 'Last Active', value: substation.last_active ? new Date(substation.last_active).toLocaleString() : 'Never', inline: true },
-            { name: 'Capacity', value: `${substation.capacity} MW`, inline: true },
-            { name: 'Connected Allocations', value: substation.connected_allocations_count.toString(), inline: true },
-            { name: 'Resources', value: `Metal: ${substation.metal}\nCrystal: ${substation.crystal}\nDeuterium: ${substation.deuterium}`, inline: false }
+            { name: 'Load', value: substation.load, inline: true },
+            { name: 'Capacity', value: substation.capacity, inline: true },
+            { name: 'Connection Capacity', value: substation.connection_capacity, inline: true },
+            { name: 'Connected Allocations', value: substation.connection_count.toString(), inline: true }
         ],
         color: 0x0099FF
     };
@@ -600,14 +972,11 @@ function createAllocationEmbed(allocation) {
     return {
         title: `Allocation Information (${allocation.id})`,
         fields: [
-            { name: 'Type', value: allocation.allocation_type_name, inline: true },
-            { name: 'Owner', value: `<@${allocation.owner_id}>`, inline: true },
-            { name: 'Status', value: allocation.status, inline: true },
-            { name: 'Created At', value: new Date(allocation.created_at).toLocaleString(), inline: true },
-            { name: 'Last Active', value: allocation.last_active ? new Date(allocation.last_active).toLocaleString() : 'Never', inline: true },
-            { name: 'Capacity', value: `${allocation.capacity} MW`, inline: true },
-            { name: 'Connected Substation', value: allocation.substation_id ? `Substation ${allocation.substation_id}` : 'None', inline: true },
-            { name: 'Resources', value: `Metal: ${allocation.metal}\nCrystal: ${allocation.crystal}\nDeuterium: ${allocation.deuterium}`, inline: false }
+            { name: 'Type', value: allocation.allocation_type, inline: true },
+            { name: 'Controller', value: `<@${allocation.controller}>`, inline: true },
+            { name: 'Source', value: `ID: ${allocation.source_id}`, inline: true },
+            { name: 'Destination', value: `Substation ${allocation.destination_id}`, inline: true },
+            { name: 'Capacity', value: allocation.capacity, inline: true }
         ],
         color: 0x0099FF
     };
@@ -617,15 +986,12 @@ function createAgreementEmbed(agreement) {
     return {
         title: `Agreement Information (${agreement.id})`,
         fields: [
-            { name: 'Provider', value: agreement.provider_name, inline: true },
-            { name: 'Consumer', value: agreement.consumer_name, inline: true },
-            { name: 'Status', value: agreement.status, inline: true },
-            { name: 'Created At', value: new Date(agreement.created_at).toLocaleString(), inline: true },
-            { name: 'Last Active', value: agreement.last_active ? new Date(agreement.last_active).toLocaleString() : 'Never', inline: true },
-            { name: 'Capacity', value: `${agreement.capacity} MW`, inline: true },
-            { name: 'Duration', value: `${agreement.duration} hours`, inline: true },
-            { name: 'Rate', value: `${agreement.rate} resources/hour`, inline: true },
-            { name: 'Resources', value: `Metal: ${agreement.metal}\nCrystal: ${agreement.crystal}\nDeuterium: ${agreement.deuterium}`, inline: false }
+            { name: 'Owner', value: `<@${agreement.owner}>`, inline: true },
+            { name: 'Provider', value: `Provider ${agreement.provider_id}`, inline: true },
+            { name: 'Allocation', value: `Allocation ${agreement.allocation_id}`, inline: true },
+            { name: 'Capacity', value: agreement.capacity, inline: true },
+            { name: 'Duration', value: `${agreement.duration} blocks`, inline: true },
+            { name: 'End Block', value: agreement.end_block.toString(), inline: true }
         ],
         color: 0x0099FF
     };
