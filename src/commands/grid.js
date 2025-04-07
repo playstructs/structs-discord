@@ -171,7 +171,7 @@ module.exports = {
                     
                     // Get player ID from Discord username
                     const playerResult = await db.query(
-                        'SELECT id FROM structs.player_meta WHERE username = $1',
+                        'SELECT player_id FROM structs.player_discord WHERE discord_username = $1',
                         [discordUsername]
                     );
 
@@ -179,22 +179,22 @@ module.exports = {
                         return await interaction.editReply('Recipient not found. Please provide a valid Discord username or player ID.');
                     }
 
-                    recipientId = playerResult.rows[0].id;
+                    recipientId = playerResult.rows[0].player_id;
                 } else {
                     recipientId = recipient;
                 }
 
                 // Get sender's player ID
                 const senderResult = await db.query(
-                    'SELECT id FROM structs.player_meta WHERE username = $1',
-                    [interaction.user.username]
+                    'SELECT plaeyr_id FROM structs.player_discord WHERE discord_id = $1',
+                    [interaction.user.id]
                 );
 
                 if (senderResult.rows.length === 0) {
-                    return await interaction.editReply('You are not registered as a player. Please register first.');
+                    return await interaction.editReply('You are not registered as a player. Please join a guild first.');
                 }
 
-                const senderId = senderResult.rows[0].id;
+                const senderId = senderResult.rows[0].player_id;
 
                 // Create transfer transaction
                 await db.query(
@@ -206,15 +206,15 @@ module.exports = {
             } else if (subcommand === 'provide') {
                 // Get player ID from Discord username
                 const playerResult = await db.query(
-                    'SELECT id FROM structs.player_meta WHERE username = $1',
-                    [interaction.user.username]
+                    'SELECT player_id FROM structs.discord_player WHERE discord_id = $1',
+                    [interaction.user.id]
                 );
 
                 if (playerResult.rows.length === 0) {
-                    return await interaction.editReply('You are not registered as a player. Please register first.');
+                    return await interaction.editReply('You are not registered as a player. Please join a guild first.');
                 }
 
-                const playerId = playerResult.rows[0].id;
+                const playerId = playerResult.rows[0].player_id;
 
                 // Get all the provider options
                 const substationId = interaction.options.getString('substation');
@@ -279,9 +279,15 @@ module.exports = {
                      FROM (
                          SELECT 'ualpha' as identifier, 'ualpha' as denom
                          UNION ALL
+                         SELECT 'alpha' as identifier, 'alpha' as denom
+                         UNION ALL
                          SELECT 'uguild.'|| guild_meta.id as identifier, 
                                 guild_meta.denom->>'0' as denom 
                          FROM structs.guild_meta where guild_meta.denom->>'0' != ''
+                         UNION ALL
+                         SELECT 'guild.'|| guild_meta.id as identifier, 
+                                guild_meta.denom->>'6' as denom 
+                         FROM structs.guild_meta where guild_meta.denom->>'6' != ''
                          UNION ALL
                          SELECT 'uguild.'|| guild.id as identifier, 
                                 'uguild.'|| guild.id as denom 
@@ -300,17 +306,17 @@ module.exports = {
                 );
             } else if (subcommand === 'provide') {
                 if (focusedValue.name === 'substation') {
-                    // Get player ID from Discord username
+                    // Get player ID from Discord ID
                     const playerResult = await db.query(
-                        'SELECT id FROM structs.player_meta WHERE username = $1',
-                        [interaction.user.username]
+                        'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
+                        [interaction.user.id]
                     );
 
                     if (playerResult.rows.length === 0) {
                         return;
                     }
 
-                    const playerId = playerResult.rows[0].id;
+                    const playerId = playerResult.rows[0].player_id;
 
                     const result = await db.query(
                         `SELECT substation.id 
@@ -361,15 +367,15 @@ module.exports = {
             } else if (subcommand === 'connect') {
                 // Get player ID from Discord username
                 const playerResult = await db.query(
-                    'SELECT id FROM structs.player_meta WHERE username = $1',
-                    [interaction.user.username]
+                    'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
+                    [interaction.user.id]
                 );
 
                 if (playerResult.rows.length === 0) {
                     return;
                 }
 
-                const playerId = playerResult.rows[0].id;
+                const playerId = playerResult.rows[0].player_id;
 
                 if (focusedValue.name === 'allocation') {
                     const result = await db.query(
@@ -396,7 +402,7 @@ module.exports = {
                              SELECT permission.object_id 
                              FROM structs.permission 
                              WHERE player_id = $1 
-                             AND val = 'connect_and_allocate'
+                             AND val >= 112
                          )
                          AND substation.id::text ILIKE $2
                          LIMIT 25`,
@@ -421,15 +427,15 @@ async function handleAgree(interaction) {
     try {
         // Get player ID from Discord username
         const playerResult = await db.query(
-            'SELECT id FROM structs.player_meta WHERE username = $1',
-            [interaction.user.username]
+            'SELECT player_id FROM structs.player_discord WHERE dicsord_id = $1',
+            [interaction.user.id]
         );
 
         if (playerResult.rows.length === 0) {
-            return await interaction.editReply('You are not registered as a player. Please register first.');
+            return await interaction.editReply('You are not registered as a player. Please join a guild first.');
         }
 
-        const playerId = playerResult.rows[0].id;
+        const playerId = playerResult.rows[0].player_id;
 
         // Get agreement parameters
         const providerId = interaction.options.getString('provider_id');
@@ -438,7 +444,7 @@ async function handleAgree(interaction) {
 
         // Create agreement transaction
         await db.query(
-            'SELECT signer.tx_agreement_create($1, $2, $3, $4)',
+            'SELECT signer.tx_agreement_open($1, $2, $3, $4)',
             [playerId, providerId, duration, capacity]
         );
 
@@ -455,15 +461,15 @@ async function handleConnect(interaction) {
     try {
         // Get player ID from Discord username
         const playerResult = await db.query(
-            'SELECT id FROM structs.player_meta WHERE username = $1',
-            [interaction.user.username]
+            'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
+            [interaction.user.id]
         );
 
         if (playerResult.rows.length === 0) {
-            return await interaction.editReply('You are not registered as a player. Please register first.');
+            return await interaction.editReply('You are not registered as a player. Please join a guild first.');
         }
 
-        const playerId = playerResult.rows[0].id;
+        const playerId = playerResult.rows[0].player_id;
 
         // Get connection parameters
         const allocationId = interaction.options.getString('allocation');
@@ -501,7 +507,7 @@ async function handleConnect(interaction) {
 
         // Create connection transaction
         await db.query(
-            'SELECT signer.tx_allocation_connect($1, $2, $3)',
+            'SELECT signer.tx_substation_allocation_connect($1, $2, $3)',
             [playerId, allocationId, substationId]
         );
 

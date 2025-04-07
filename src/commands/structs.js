@@ -42,7 +42,7 @@ module.exports = {
         )
         .addSubcommand(subcommand =>
             subcommand
-                .setName('guild')
+                .setName('tag')
                 .setDescription('Look up information about a guild by its tag')
                 .addStringOption(option =>
                     option
@@ -89,7 +89,7 @@ module.exports = {
                     await interaction.editReply(result);
                     break;
                 }
-                case 'guild': {
+                case 'tag': {
                     const tag = interaction.options.getString('tag');
                     const result = await handleTagLookup(tag);
                     await interaction.editReply(result);
@@ -97,7 +97,7 @@ module.exports = {
                 }
                 case 'join': {
                     const guildId = interaction.options.getString('guild');
-                    const result = await handleJoinGuild(interaction.user.username, guildId);
+                    const result = await handleJoinGuild(interaction.user.id, interaction.user.username, guildId);
                     await interaction.editReply(result);
                     break;
                 }
@@ -270,12 +270,12 @@ async function handleTagLookup(tag) {
     return 'No guild found with that tag.';
 }
 
-async function handleJoinGuild(discordUsername, guildId) {
+async function handleJoinGuild(discordId, discordUsername, guildId) {
     try {
         // Check if player already exists
         const playerCheck = await db.query(
-            'SELECT * FROM structs.player_meta WHERE username = $1',
-            [discordUsername]
+            'SELECT * FROM structs.player_discord WHERE discord_id = $1',
+            [discordId]
         );
 
         if (playerCheck.rows.length > 0) {
@@ -284,8 +284,8 @@ async function handleJoinGuild(discordUsername, guildId) {
 
         // Check if player already has a pending join request
         const pendingCheck = await db.query(
-            'SELECT * FROM structs.player_internal_pending WHERE discord_username = $1',
-            [discordUsername]
+            'SELECT * FROM structs.signer WHERE signer.id in (select player_discord.role_id FROM structs.player_discord where player_discord.discord_id = $1) and signer.status != $2' ,
+            [discordId, 'ready']
         );
 
         if (pendingCheck.rows.length > 0) {
@@ -294,8 +294,8 @@ async function handleJoinGuild(discordUsername, guildId) {
 
         // Insert the join request
         await db.query(
-            'INSERT INTO structs.player_internal_pending (guild_id, discord_username) VALUES ($1, $2)',
-            [guildId, discordUsername]
+            'INSERT INTO structs.player_discord(guild_id, discord_id, discord_username) VALUES ($1, $2, $3)',
+            [guildId, discordId, discordUsername]
         );
 
         return 'Your join request has been submitted. The backend process will handle your registration. You will be able to use more commands once your registration is complete.';
