@@ -1,5 +1,5 @@
 // Require the necessary discord.js classes
-const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -8,43 +8,47 @@ require('dotenv').config();
 const token = process.env.DISCORD_TOKEN
 
 // Create a new client instance
-const client = new Client({ 
+const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ] 
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers
+    ]
 });
 
+client.commands = new Collection();
+
 // Load commands
-const commands = require('./src/commands');
-client.commands = commands;
+const commandsPath = path.join(__dirname, 'src/commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    client.commands.set(command.data.name, command);
+}
 
 // When the client is ready, run this code (only once)
-client.once(Events.ClientReady, readyClient => {
-    console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+client.once('ready', () => {
+    console.log('Bot is ready!');
 });
 
 // Handle slash commands
-client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
 
-    const command = interaction.client.commands.get(interaction.commandName);
-
-    if (!command) {
-        console.error(`No command matching ${interaction.commandName} was found.`);
-        return;
-    }
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
 
     try {
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-        } else {
-            await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-        }
+        await interaction.reply({ 
+            content: 'There was an error executing this command!', 
+            ephemeral: true 
+        });
     }
 });
 
