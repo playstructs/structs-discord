@@ -70,9 +70,9 @@ module.exports = {
                 if (joinResult.rows.length > 0) {
                     embed.addFields(
                         { name: 'Join Status', value: 'Pending Authorization', inline: false },
-                        { name: 'Proxy Join Address', value: joinResult.rows[0].primary_address, inline: true },
-                        { name: 'Public Key', value: joinResult.rows[0].pubkey, inline: true },
-                        { name: 'Signature', value: joinResult.rows[0].signature, inline: true }
+                        { name: 'Proxy Join Address', value: joinResult.rows[0].primary_address, inline: false },
+                        { name: 'Public Key', value: joinResult.rows[0].pubkey, inline: false },
+                        { name: 'Signature', value: joinResult.rows[0].signature, inline: false }
                     );
                 } else {
                     embed.addFields(
@@ -81,8 +81,9 @@ module.exports = {
                 }
 
                 // Add permission status
-                const permissionStatus = [];
-                let isFullySetup = true;
+                let isFullySetup = false;
+                let isSubstationSetup = false;
+                let isGuildSetup = false;
 
                 for (const row of permissionResult.rows) {
                     const val = parseInt(row.val);
@@ -99,19 +100,24 @@ module.exports = {
                     if (val & 64) permissions.push('Permissions');
 
                     // Check if guild is fully setup
-                    if (objectType === 'guild' && !(val & 16)) {
-                        isFullySetup = false;
+                    if (objectType === 'guild' && (val & 16)) {
+                        isGuildSetup = true;
                     }
-                    if (objectType === 'substation' && !(val & 48)) {
-                        isFullySetup = false;
+                    if (objectType === 'substation' && (val & 48)) {
+                        isSubstationSetup = true;
                     }
 
-                    permissionStatus.push(`${objectType}: ${permissions.join(', ')}`);
+                    embed.addFields(
+                        { name: objectType, value: permissions.join(', ') || 'No permissions found', inline: false }
+                    );
+                }
+
+                if (isGuildSetup && isSubstationSetup) {
+                    isFullySetup = true;
                 }
 
                 embed.addFields(
-                    { name: 'Permission Status', value: permissionStatus.join('\n') || 'No permissions found', inline: false },
-                    { name: 'Setup Status', value: isFullySetup ? '✅ Fully Setup' : '❌ Not Fully Setup', inline: false }
+                    { name: 'Setup Status', value: isFullySetup ? '✅ Bot Successfully Authorized' : '❌ Not Fully Setup', inline: false }
                 );
 
                 await interaction.editReply({ embeds: [embed] });

@@ -6,17 +6,20 @@ const createPlayerEmbed = async (player) => {
         .setTitle(`Player: ${player.username || 'Unknown'}`)
         .setColor('#0099ff')
         .addFields(
-            { name: 'Player ID', value: player.player_id, inline: true },
-            { name: 'Guild', value: player.guild_name || 'None', inline: true },
-            { name: 'Primary Address', value: player.primary_address || 'None', inline: true },
-            { name: 'Ore', value: player.ore || '0', inline: true },
+            { name: 'Player ID', value: player.player_id , inline: true },
+            { name: 'Guild', value: player.guild_name + '[' + player.guild_id + ']' || 'None', inline: true },
+            { name: 'Primary Address', value: player.primary_address || 'None', inline: false },
+            { name: 'Ore', value: player.ore || '0', inline: false },
             { name: 'Load', value: player.load || '0', inline: true },
             { name: 'Structs Load', value: player.structs_load || '0', inline: true },
             { name: 'Capacity', value: player.capacity || '0', inline: true },
             { name: 'Connection Capacity', value: player.connection_capacity || '0', inline: true },
+            { name: '\u200b', value: '\u200b'},
             { name: 'Total Load', value: player.total_load || '0', inline: true },
             { name: 'Total Capacity', value: player.total_capacity || '0', inline: true }
         );
+
+    embed.addField('\u200b', '\u200b');
 
     if (player.substation_id) {
         embed.addFields({ name: 'Substation ID', value: player.substation_id, inline: true });

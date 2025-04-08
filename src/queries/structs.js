@@ -6,6 +6,7 @@ const fetchPlayerData = {
             `SELECT
                 player.id as player_id,
                 player_meta.username,
+                player.guild_id,
                 (select guild_meta.name from structs.guild_meta where guild_meta.id = player.guild_id) as guild_name,
                 player.substation_id,
                 player.planet_id,
@@ -68,7 +69,7 @@ const fetchPlayerData = {
                 player.primary_address
             FROM structs.player 
             LEFT JOIN structs.player_meta ON player.id = player_meta.id
-            WHERE player_meta.username = $1`,
+            WHERE player.id = (select player_discord.player_id from structs.player_discord where player_discord.discord_id = $1)`,
             [discordId]
         );
     }
