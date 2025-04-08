@@ -37,7 +37,7 @@ module.exports = {
                 choices.push(
                     { name: '👤 Enter a player ID (e.g., 1-123)', value: '1-' },
                     { name: '👤 Mention a player (@username)', value: '@' },
-                    { name: '💳 Enter a wallet address', value: '0x' }
+                    { name: '🔒 Enter a wallet address', value: 'structs' }
                 );
             } else {
                 // Use the provided SQL query to get a list of potential recipients
@@ -45,7 +45,7 @@ module.exports = {
                     `SELECT id, id FROM (
                         SELECT id, id FROM structs.player 
                         UNION 
-                        SELECT '@' || player_discord.discord_username, player_discord.player_id FROM structs.player_discord 
+                        SELECT '@' || player_discord.discord_username || '(' || player_discord.discord_id || ')', player_discord.player_id FROM structs.player_discord 
                         UNION 
                         SELECT player_address.address, player_address.player_id FROM structs.player_address
                     ) AS recipients
@@ -62,8 +62,8 @@ module.exports = {
                     // Add appropriate emoji based on the type of recipient
                     if (name.startsWith('@')) {
                         prefix = '👤 '; // Discord user
-                    } else if (name.startsWith('0x')) {
-                        prefix = '💳 '; // Wallet address
+                    } else if (name.startsWith('structs')) {
+                        prefix = '🔒 '; // Wallet address
                     } else if (name.includes('-')) {
                         prefix = '👤 '; // Player ID
                     }
@@ -100,15 +100,6 @@ module.exports = {
 
             const playerId = playerResult.rows[0].player_id;
 
-            // Check if the allocation belongs to the player
-            const allocationResult = await db.query(
-                'SELECT id FROM structs.allocation WHERE id = $1 AND player_id = $2',
-                [allocationId, playerId]
-            );
-
-            if (allocationResult.rows.length === 0) {
-                return await interaction.editReply('❌ Allocation not found or does not belong to you.');
-            }
 
             // Determine the recipient ID based on the input format
             let recipientId;
@@ -148,7 +139,7 @@ module.exports = {
             // Create the wire transaction
             const result = await db.query(
                 'SELECT signer.tx_wire($1, $2, $3, $4)',
-                [playerId, allocationId, recipientId, amount]
+                [playerId, amount, resource, recipientId]
             );
 
             if (result.rows[0].tx_wire) {

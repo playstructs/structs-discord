@@ -19,6 +19,22 @@ const getDiscordUsername = async (playerId) => {
     }
 };
 
+const getPlayerIdFromAddress = async (address) => {
+    try {
+        const result = await db.query(
+            'SELECT player_id FROM structs.player_address WHERE address = $1',
+            [address]
+        );
+        if (result.rows.length > 0) {
+            return result.rows[0].player_id;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching player ID:', error);
+        return null;
+    }
+};
+
 const createPlayerEmbed = async (player) => {
     const embed = new EmbedBuilder()
         .setTitle(`Player: ${player.username || 'Unknown'}`)
@@ -82,6 +98,8 @@ const createPlanetEmbed = async (planet) => {
         const discordUsername = await getDiscordUsername(planet.owner);
         if (discordUsername) {
             ownerDisplay = `${discordUsername} (${planet.owner})`;
+        } else {
+            ownerDisplay = planet.owner;
         }
     }
 
@@ -158,6 +176,8 @@ const createStructEmbed = async (struct) => {
         const discordUsername = await getDiscordUsername(struct.owner);
         if (discordUsername) {
             ownerDisplay = `${discordUsername} (${struct.owner})`;
+        } else {
+            ownerDisplay = struct.owner;
         }
     }
 
@@ -233,6 +253,8 @@ const createFleetEmbed = async (fleet) => {
         const discordUsername = await getDiscordUsername(fleet.owner);
         if (discordUsername) {
             ownerDisplay = `${discordUsername} (${fleet.owner})`;
+        } else {
+            ownerDisplay = fleet.owner;
         }
     }
 
@@ -255,6 +277,8 @@ const createProviderEmbed = async (provider) => {
         const discordUsername = await getDiscordUsername(provider.owner);
         if (discordUsername) {
             ownerDisplay = `${discordUsername} (${provider.owner})`;
+        } else {
+            ownerDisplay = provider.owner;
         }
     }
 
@@ -280,9 +304,12 @@ const createAllocationEmbed = async (allocation) => {
     // Get Discord username for controller if available
     let controllerDisplay = allocation.controller;
     if (allocation.controller) {
-        const discordUsername = await getDiscordUsername(allocation.controller);
+        const playerId = await getPlayerIdFromAddress(allocation.controller);
+        const discordUsername = await getDiscordUsername(playerId);
         if (discordUsername) {
             controllerDisplay = `${discordUsername} (${allocation.controller})`;
+        } else {
+            controllerDisplay = allocation.controller;
         }
     }
 
@@ -308,6 +335,8 @@ const createAgreementEmbed = async (agreement) => {
         const discordUsername = await getDiscordUsername(agreement.owner);
         if (discordUsername) {
             ownerDisplay = `${discordUsername} (${agreement.owner})`;
+        } else {
+            ownerDisplay = agreement.owner;
         }
     }
 
@@ -334,6 +363,8 @@ const createSubstationEmbed = async (substation) => {
         const discordUsername = await getDiscordUsername(substation.owner);
         if (discordUsername) {
             ownerDisplay = `${discordUsername} (${substation.owner})`;
+        } else {
+            ownerDisplay = substation.owner;
         }
     }
 
@@ -353,37 +384,17 @@ const createSubstationEmbed = async (substation) => {
 };
 
 const createReactorEmbed = async (reactor) => {
-    // Get Discord username for owner if available
-    let ownerDisplay = reactor.owner;
-    if (reactor.owner) {
-        const discordUsername = await getDiscordUsername(reactor.owner);
-        if (discordUsername) {
-            ownerDisplay = `${discordUsername} (${reactor.owner})`;
-        }
-    }
 
     const embed = new EmbedBuilder()
         .setTitle(`Reactor: ${reactor.reactor_id}`)
         .setColor('#0099ff')
         .addFields(
             { name: 'Reactor ID', value: reactor.reactor_id, inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
-            { name: 'Status', value: reactor.status || 'Unknown', inline: true },
+            { name: 'Status', value: reactor.status || 'Unknown', inline: false },
             { name: 'Fuel', value: reactor.fuel || '0', inline: true },
             { name: 'Load', value: reactor.load || '0', inline: true },
             { name: 'Capacity', value: reactor.capacity || '0', inline: true }
         );
-
-    // Add additional reactor-specific fields if they exist
-    if (reactor.efficiency) {
-        embed.addFields({ name: 'Efficiency', value: reactor.efficiency.toString(), inline: true });
-    }
-    if (reactor.heat) {
-        embed.addFields({ name: 'Heat', value: reactor.heat.toString(), inline: true });
-    }
-    if (reactor.max_heat) {
-        embed.addFields({ name: 'Max Heat', value: reactor.max_heat.toString(), inline: true });
-    }
 
     return embed;
 };
