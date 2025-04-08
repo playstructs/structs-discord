@@ -97,8 +97,8 @@ module.exports = {
 
             // Check if it's a Discord mention
             if (query.startsWith('<@')) {
-                const discordId = query.replace(/[<@!>]/g, '');
-                const data = await fetchPlayerData.byDiscordId(discordId);
+                const discordUsername = query.replace(/[<@!>]/g, '');
+                const data = await fetchPlayerData.byDiscordUsername(discordUsername);
                 if (data.rows && data.rows.length > 0) {
                     const embeds = await createEmbeds.player(data.rows[0]);
                     return await interaction.editReply({ embeds });
