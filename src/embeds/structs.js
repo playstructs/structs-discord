@@ -1,5 +1,23 @@
 const { EmbedBuilder } = require('discord.js');
 const { fetchPlayerData } = require('../queries/structs');
+const db = require('../database');
+
+// Helper function to get Discord username from player ID
+const getDiscordUsername = async (playerId) => {
+    try {
+        const result = await db.query(
+            'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+            [playerId]
+        );
+        if (result.rows.length > 0) {
+            return result.rows[0].discord_username;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching Discord username:', error);
+        return null;
+    }
+};
 
 const createPlayerEmbed = async (player) => {
     const embed = new EmbedBuilder()
@@ -19,7 +37,7 @@ const createPlayerEmbed = async (player) => {
             { name: 'Total Capacity', value: player.total_capacity || '0', inline: true }
         );
 
-    embed.addField('\u200b', '\u200b');
+    embed.addFields({ name: '\u200b', value: '\u200b'});
 
     if (player.substation_id) {
         embed.addFields({ name: 'Substation ID', value: player.substation_id, inline: true });
@@ -58,12 +76,21 @@ const createGuildEmbed = async (guild) => {
 };
 
 const createPlanetEmbed = async (planet) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = planet.owner;
+    if (planet.owner) {
+        const discordUsername = await getDiscordUsername(planet.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${planet.owner})`;
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`Planet: ${planet.planet_id}`)
         .setColor('#0099ff')
         .addFields(
             { name: 'Planet ID', value: planet.planet_id, inline: true },
-            { name: 'Owner', value: planet.owner, inline: true },
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
             { name: 'Status', value: planet.status || 'Unknown', inline: true },
             { name: 'Max Ore', value: planet.max_ore || '0', inline: true },
             { name: 'Vulnerable Ore', value: planet.vulnerable_ore || '0', inline: true }
@@ -125,12 +152,21 @@ const createPlanetEmbed = async (planet) => {
 };
 
 const createStructEmbed = async (struct) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = struct.owner;
+    if (struct.owner) {
+        const discordUsername = await getDiscordUsername(struct.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${struct.owner})`;
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`Struct: ${struct.struct_id}`)
         .setColor('#0099ff')
         .addFields(
             { name: 'Struct ID', value: struct.struct_id, inline: true },
-            { name: 'Owner', value: struct.owner, inline: true },
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
             { name: 'Type', value: struct.type, inline: true },
             { name: 'Category', value: struct.category, inline: true },
             { name: 'Location', value: `${struct.location_type} ${struct.location_id}`, inline: true },
@@ -191,25 +227,43 @@ const createStructEmbed = async (struct) => {
 };
 
 const createFleetEmbed = async (fleet) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = fleet.owner;
+    if (fleet.owner) {
+        const discordUsername = await getDiscordUsername(fleet.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${fleet.owner})`;
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`Fleet: ${fleet.name || 'Unknown'}`)
         .setColor('#0099ff')
         .addFields(
             { name: 'Fleet ID', value: fleet.id, inline: true },
             { name: 'Type', value: fleet.fleet_type_name, inline: true },
-            { name: 'Owner', value: fleet.owner, inline: true }
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true }
         );
 
     return embed;
 };
 
 const createProviderEmbed = async (provider) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = provider.owner;
+    if (provider.owner) {
+        const discordUsername = await getDiscordUsername(provider.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${provider.owner})`;
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`Provider: ${provider.id}`)
         .setColor('#0099ff')
         .addFields(
             { name: 'Provider ID', value: provider.id, inline: true },
-            { name: 'Owner', value: provider.owner, inline: true },
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
             { name: 'Substation ID', value: provider.substation_id || 'None', inline: true },
             { name: 'Rate', value: provider.rate || '0', inline: true },
             { name: 'Access Policy', value: provider.access_policy || 'None', inline: true },
@@ -223,6 +277,15 @@ const createProviderEmbed = async (provider) => {
 };
 
 const createAllocationEmbed = async (allocation) => {
+    // Get Discord username for controller if available
+    let controllerDisplay = allocation.controller;
+    if (allocation.controller) {
+        const discordUsername = await getDiscordUsername(allocation.controller);
+        if (discordUsername) {
+            controllerDisplay = `${discordUsername} (${allocation.controller})`;
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`Allocation: ${allocation.id}`)
         .setColor('#0099ff')
@@ -231,7 +294,7 @@ const createAllocationEmbed = async (allocation) => {
             { name: 'Type', value: allocation.allocation_type, inline: true },
             { name: 'Source ID', value: allocation.source_id, inline: true },
             { name: 'Destination ID', value: allocation.destination_id, inline: true },
-            { name: 'Controller', value: allocation.controller, inline: true },
+            { name: 'Controller', value: controllerDisplay || 'None', inline: true },
             { name: 'Capacity', value: allocation.capacity || '0', inline: true }
         );
 
@@ -239,6 +302,15 @@ const createAllocationEmbed = async (allocation) => {
 };
 
 const createAgreementEmbed = async (agreement) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = agreement.owner;
+    if (agreement.owner) {
+        const discordUsername = await getDiscordUsername(agreement.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${agreement.owner})`;
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`Agreement: ${agreement.id}`)
         .setColor('#0099ff')
@@ -249,24 +321,69 @@ const createAgreementEmbed = async (agreement) => {
             { name: 'Capacity', value: agreement.capacity || '0', inline: true },
             { name: 'Duration', value: `${agreement.duration} blocks`, inline: true },
             { name: 'End Block', value: agreement.end_block.toString(), inline: true },
-            { name: 'Owner', value: agreement.owner, inline: true }
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true }
         );
 
     return embed;
 };
 
 const createSubstationEmbed = async (substation) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = substation.owner;
+    if (substation.owner) {
+        const discordUsername = await getDiscordUsername(substation.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${substation.owner})`;
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`Substation: ${substation.id}`)
         .setColor('#0099ff')
         .addFields(
             { name: 'Substation ID', value: substation.id, inline: true },
-            { name: 'Owner', value: substation.owner, inline: true },
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
             { name: 'Location', value: substation.location_id, inline: true },
             { name: 'Status', value: substation.status || 'Unknown', inline: true },
             { name: 'Load', value: substation.load || '0', inline: true },
             { name: 'Capacity', value: substation.capacity || '0', inline: true }
         );
+
+    return embed;
+};
+
+const createReactorEmbed = async (reactor) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = reactor.owner;
+    if (reactor.owner) {
+        const discordUsername = await getDiscordUsername(reactor.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${reactor.owner})`;
+        }
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle(`Reactor: ${reactor.reactor_id}`)
+        .setColor('#0099ff')
+        .addFields(
+            { name: 'Reactor ID', value: reactor.reactor_id, inline: true },
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
+            { name: 'Status', value: reactor.status || 'Unknown', inline: true },
+            { name: 'Fuel', value: reactor.fuel || '0', inline: true },
+            { name: 'Load', value: reactor.load || '0', inline: true },
+            { name: 'Capacity', value: reactor.capacity || '0', inline: true }
+        );
+
+    // Add additional reactor-specific fields if they exist
+    if (reactor.efficiency) {
+        embed.addFields({ name: 'Efficiency', value: reactor.efficiency.toString(), inline: true });
+    }
+    if (reactor.heat) {
+        embed.addFields({ name: 'Heat', value: reactor.heat.toString(), inline: true });
+    }
+    if (reactor.max_heat) {
+        embed.addFields({ name: 'Max Heat', value: reactor.max_heat.toString(), inline: true });
+    }
 
     return embed;
 };
@@ -356,6 +473,10 @@ const createEmbeds = {
 
     async substation(substation) {
         return [await createSubstationEmbed(substation)];
+    },
+
+    async reactor(reactor) {
+        return [await createReactorEmbed(reactor)];
     }
 };
 
