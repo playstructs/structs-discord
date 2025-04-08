@@ -13,6 +13,37 @@ module.exports = {
                 .setAutocomplete(true)
         ),
 
+    async autocomplete(interaction) {
+        const focusedValue = interaction.options.getFocused();
+        
+        try {
+            const result = await db.query(
+                `
+                WITH base AS (
+                    SELECT guild_meta.id as name, guild_meta.id as value from guild_meta
+                    UNION
+                    SELECT guild_meta.name ||'('||guild_meta.id||')' as name, guild_meta.id as value FROM structs.guild_meta 
+                    UNION 
+                    SELECT guild_meta.tag ||'('||guild_meta.id||')' as name, guild_meta.id as value  FROM structs.guild_meta 
+                )
+                SELECT * FROM base
+                WHERE name ILIKE $1
+                LIMIT 25`,
+                [`%${focusedValue}%`]
+            );
+
+            await interaction.respond(
+                result.rows.map(row => ({
+                    name: row.name,
+                    value: row.value
+                }))
+            );
+        } catch (error) {
+            console.error('Error in join autocomplete:', error);
+            await interaction.respond([]);
+        }
+    },
+
     async execute(interaction) {
         await interaction.deferReply();
 

@@ -39,7 +39,7 @@ module.exports = {
                         SELECT '@' || player_discord.discord_username, player_discord.player_id FROM structs.player_discord 
                         UNION 
                         SELECT player_address.address, player_address.player_id FROM structs.player_address
-                    ) AS searchable_entities
+                    ) 
                     WHERE name ILIKE $1
                     LIMIT 25`,
                     [`%${focusedValue}%`]

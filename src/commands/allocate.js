@@ -52,40 +52,42 @@ module.exports = {
 
             if (focusedOption.name === 'source') {
                 const result = await db.query(
-                    `SELECT id, id FROM (
-                        SELECT $1 || ' (Your Player!)', $id
+                    `WITH base AS (
+                        SELECT $1 || ' (Your Player!)' as name, $id as value
                         UNION 
-                        SELECT id || '(Your Substation)', id from substation where owner = $id
+                        SELECT id || '(Your Substation)' as name, id as value from substation where owner = $id
                     ) AS sources
-                    WHERE id ILIKE $1
+                    SELECT * FROM base
+                    WHERE name ILIKE $1
                     LIMIT 25`,
                     [`%${focusedValue}%`]
                 );
 
                 await interaction.respond(
                     result.rows.map(row => ({
-                        name: row.id,
-                        value: row.id
+                        name: row.name,
+                        value: row.value
                     }))
                 );
             } else if (focusedOption.name === 'destination') {
                 const result = await db.query(
-                    `SELECT id, id FROM (
-                        SELECT id, id FROM structs.player 
+                    `WITH base AS (
+                        SELECT id as name, id as value FROM structs.player 
                         UNION 
-                        SELECT '@' || player_discord.discord_username || '(' || player_discord.discord_id || ')', player_discord.player_id FROM structs.player_discord 
+                        SELECT '@' || player_discord.discord_username || '(' || player_discord.discord_id || ')' as name, player_discord.player_id as value FROM structs.player_discord 
                         UNION 
-                        SELECT player_address.address, player_address.player_id FROM structs.player_address
-                    ) AS destinations
-                    WHERE id ILIKE $1
+                        SELECT player_address.address as name, player_address.player_id as value FROM structs.player_address
+                    ) 
+                    SELECT * FROM base
+                    WHERE name ILIKE $1
                     LIMIT 25`,
                     [`%${focusedValue}%`]
                 );
 
                 await interaction.respond(
                     result.rows.map(row => ({
-                        name: row.id,
-                        value: row.id
+                        name: row.name,
+                        value: row.value
                     }))
                 );
             } else if (focusedOption.name === 'type') {

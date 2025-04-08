@@ -42,14 +42,15 @@ module.exports = {
             } else {
                 // Use the provided SQL query to get a list of potential recipients
                 const result = await db.query(
-                    `SELECT id, id FROM (
-                        SELECT id, id FROM structs.player 
+                    `WITH base AS (
+                        SELECT id as name, id as value FROM structs.player 
                         UNION 
-                        SELECT '@' || player_discord.discord_username || '(' || player_discord.discord_id || ')', player_discord.player_id FROM structs.player_discord 
+                        SELECT '@' || player_discord.discord_username || '(' || player_discord.discord_id || ')' as name, player_discord.player_id as value FROM structs.player_discord 
                         UNION 
-                        SELECT player_address.address, player_address.player_id FROM structs.player_address
-                    ) AS recipients
-                    WHERE id ILIKE $1
+                        SELECT player_address.address as name, player_address.player_id as value FROM structs.player_address
+                    )
+                    SELECT * FROM base
+                    WHERE name ILIKE $1
                     LIMIT 25`,
                     [`%${focusedValue}%`]
                 );
