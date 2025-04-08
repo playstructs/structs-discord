@@ -374,10 +374,13 @@ const createSubstationEmbed = async (substation) => {
         .addFields(
             { name: 'Substation ID', value: substation.id, inline: true },
             { name: 'Owner', value: ownerDisplay || 'None', inline: true },
-            { name: 'Location', value: substation.location_id, inline: true },
-            { name: 'Status', value: substation.status || 'Unknown', inline: true },
+            { name: '\u200b', value: '\u200b'},
             { name: 'Load', value: substation.load || '0', inline: true },
-            { name: 'Capacity', value: substation.capacity || '0', inline: true }
+            { name: 'Capacity', value: substation.capacity || '0', inline: true },
+            { name: '\u200b', value: '\u200b'},
+            { name: 'Connection Capacity', value: substation.connection_capacity || '0', inline: true },
+            { name: 'Connection Count', value: substation.connection_count || '0', inline: true }
+
         );
 
     return embed;
