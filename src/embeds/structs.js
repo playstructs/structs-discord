@@ -252,6 +252,22 @@ const createAgreementEmbed = async (agreement) => {
     return embed;
 };
 
+const createSubstationEmbed = async (substation) => {
+    const embed = new EmbedBuilder()
+        .setTitle(`Substation: ${substation.id}`)
+        .setColor('#0099ff')
+        .addFields(
+            { name: 'Substation ID', value: substation.id, inline: true },
+            { name: 'Owner', value: substation.owner, inline: true },
+            { name: 'Location', value: substation.location_id, inline: true },
+            { name: 'Status', value: substation.status || 'Unknown', inline: true },
+            { name: 'Load', value: substation.load || '0', inline: true },
+            { name: 'Capacity', value: substation.capacity || '0', inline: true }
+        );
+
+    return embed;
+};
+
 const createEmbeds = {
     async player(player) {
         const embeds = [await createPlayerEmbed(player)];
@@ -333,6 +349,10 @@ const createEmbeds = {
             }
         }
         return embeds;
+    },
+
+    async substation(substation) {
+        return [await createSubstationEmbed(substation)];
     }
 };
 

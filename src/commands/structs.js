@@ -284,7 +284,7 @@ async function handleJoinGuild(discordId, discordUsername, guildId) {
 
         // Check if player already has a pending join request
         const pendingCheck = await db.query(
-            'SELECT * FROM structs.signer WHERE signer.id in (select player_discord.role_id FROM structs.player_discord where player_discord.discord_id = $1) and signer.status != $2' ,
+            'SELECT * FROM signer.role WHERE role.id in (select player_discord.role_id FROM structs.player_discord where player_discord.discord_id = $1) and role.status != $2' ,
             [discordId, 'ready']
         );
 
