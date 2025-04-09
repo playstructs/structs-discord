@@ -37,11 +37,11 @@ const getPlayerIdFromAddress = async (address) => {
 
 const createPlayerEmbed = async (player) => {
     const embed = new EmbedBuilder()
-        .setTitle(`Player: ${player.username || 'Unknown'}`)
+        .setTitle(`Player: ${player.username || player.discord_username || 'Unknown'}`)
         .setColor('#0099ff')
         .addFields(
             { name: 'Player ID', value: player.player_id , inline: true },
-            { name: 'Guild', value: player.guild_name + '[' + player.guild_id + ']' || 'None', inline: true },
+            { name: 'Guild', value: player.guild_name + ' [' + player.guild_id + ']' || 'None', inline: true },
             { name: 'Primary Address', value: player.primary_address || 'None', inline: false },
             { name: 'Ore', value: player.ore || '0', inline: false },
             { name: 'Load', value: player.load || '0', inline: true },
@@ -369,10 +369,10 @@ const createSubstationEmbed = async (substation) => {
     }
 
     const embed = new EmbedBuilder()
-        .setTitle(`Substation: ${substation.id}`)
+        .setTitle(`Substation: ${substation.substation_id}`)
         .setColor('#0099ff')
         .addFields(
-            { name: 'Substation ID', value: substation.id, inline: true },
+            { name: 'Substation ID', value: substation.substation_id, inline: true },
             { name: 'Owner', value: ownerDisplay || 'None', inline: true },
             { name: '\u200b', value: '\u200b'},
             { name: 'Load', value: substation.load || '0', inline: true },

@@ -6,6 +6,7 @@ const fetchPlayerData = {
             `SELECT
                 player.id as player_id,
                 player_meta.username,
+                (select player_discord.discord_username FROM structs.player_discord WHERE player_discord.player_id = player.id) as discord_username,
                 player.guild_id,
                 (select guild_meta.name from structs.guild_meta where guild_meta.id = player.guild_id) as guild_name,
                 player.substation_id,
@@ -31,6 +32,7 @@ const fetchPlayerData = {
             `SELECT
                 player.id as player_id,
                 player_meta.username,
+                (select player_discord.discord_username FROM structs.player_discord WHERE player_discord.player_id = player.id) as discord_username,
                 (select guild_meta.name from structs.guild_meta where guild_meta.id = player.guild_id) as guild_name,
                 player.substation_id,
                 player.planet_id,
