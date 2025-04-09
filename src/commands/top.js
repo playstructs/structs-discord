@@ -151,7 +151,7 @@ async function createPlayersLeaderboard(orderBy) {
 
     let description = '';
     result.rows.forEach((row, index) => {
-        description += `${index + 1}. **${row.discord_username || 'Unknown'}**\n`;
+        description += `${index + 1}. **${row.discord_username || 'Player ID ' + row.player_id}**\n`;
         description += `   Balance: ${row.display_alpha_balance} | Value: ${row.display_alpha_value}\n\n`;
     });
 
@@ -197,7 +197,7 @@ async function createGuildsLeaderboard(orderBy) {
 
     let description = '';
     result.rows.forEach((row, index) => {
-        description += `${index + 1}. **${row.name}** (${row.tag})\n`;
+        description += `${index + 1}. **${row.name}** [${row.tag}] #${row.id}\n`;
         description += `   Players: ${row.player_count} | Collateral: ${row.display_collateral_balance} | Ratio: ${row.display_ratio}\n\n`;
     });
 
