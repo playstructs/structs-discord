@@ -114,13 +114,13 @@ module.exports = {
 
                 if (!isGuildSetup) {
                     embed.addFields(
-                        { name: 'guild', value: 'No permissions, needs Association (16)', inline: false }
+                        { name: 'guild', value: 'No permissions, needs Associations (16)', inline: false }
                     );
                 }
 
                 if (!isSubstationSetup) {
                     embed.addFields(
-                        { name: 'substation', value: 'No permissions, needs Assocaition (16), Grid (32)', inline: false }
+                        { name: 'substation', value: 'No permissions, needs Associationd (16), Grid (32)', inline: false }
                     );
                 }
 

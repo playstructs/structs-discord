@@ -300,9 +300,8 @@ const fetchStructData = {
 
     async fleet(id) {
         return await db.query(
-            `SELECT f.*, ft.name as fleet_type_name 
-            FROM fleets f 
-            JOIN fleet_types ft ON f.fleet_type_id = ft.id 
+            `SELECT f.*
+            FROM fleet f 
             WHERE f.id = $1`,
             [id]
         );
@@ -313,7 +312,7 @@ const fetchStructData = {
             `SELECT 
                 id, 
                 substation_id,
-                structs.UNIT_DISPLAY_FORMAT(rate_amount, rate_demon) as rate,
+                structs.UNIT_DISPLAY_FORMAT(rate_amount, rate_denom) as rate,
                 access_policy,
                 structs.UNIT_DISPLAY_FORMAT(capacity_minimum,'milliwatt') as capacity_minimum,
                 structs.UNIT_DISPLAY_FORMAT(capacity_maximum,'milliwatt') as capacity_maximum,
