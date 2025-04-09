@@ -112,6 +112,18 @@ module.exports = {
                     );
                 }
 
+                if (!isGuildSetup) {
+                    embed.addFields(
+                        { name: 'guild', value: 'No permissions, needs Association (16)', inline: false }
+                    );
+                }
+
+                if (!isSubstationSetup) {
+                    embed.addFields(
+                        { name: 'substation', value: 'No permissions, needs Assocaition (16), Grid (32)', inline: false }
+                    );
+                }
+
                 if (isGuildSetup && isSubstationSetup) {
                     isFullySetup = true;
                 }
