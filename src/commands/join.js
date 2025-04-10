@@ -15,32 +15,65 @@ module.exports = {
 
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
+        const choices = [];
         
         try {
-            const result = await db.query(
-                `
-                WITH base AS (
-                    SELECT guild_meta.id as name, guild_meta.id as value from guild_meta
-                    UNION
-                    SELECT guild_meta.name ||'('||guild_meta.id||')' as name, guild_meta.id as value FROM structs.guild_meta 
-                    UNION 
-                    SELECT guild_meta.tag ||'('||guild_meta.id||')' as name, guild_meta.id as value  FROM structs.guild_meta 
-                )
-                SELECT * FROM base
-                WHERE name ILIKE $1
-                LIMIT 25`,
-                [`%${focusedValue}%`]
-            );
+            // If the input is empty, return helpful default suggestions
+            if (!focusedValue) {
+                choices.push(
+                    { name: '🔍 Type to search for a guild', value: 'search' }
+                );
+            } else {
+                const result = await db.query(
+                    `
+                    WITH base AS (
+                        SELECT guild_meta.id as name, guild_meta.id as value from guild_meta
+                        UNION
+                        SELECT guild_meta.name ||'('||guild_meta.id||')' as name, guild_meta.id as value FROM structs.guild_meta 
+                        UNION 
+                        SELECT guild_meta.tag ||'('||guild_meta.id||')' as name, guild_meta.id as value  FROM structs.guild_meta 
+                    )
+                    SELECT * FROM base
+                    WHERE name ILIKE $1
+                    LIMIT 25`,
+                    [`%${focusedValue}%`]
+                );
 
-            await interaction.respond(
-                result.rows.map(row => ({
-                    name: row.name,
-                    value: row.value
-                }))
-            );
+                // Add visual indicators for guilds
+                result.rows.forEach(row => {
+                    choices.push({
+                        name: '🏰 ' + row.name,
+                        value: row.value
+                    });
+                });
+                
+                // If no results were found, add a helpful message
+                if (choices.length === 0) {
+                    choices.push({ 
+                        name: '🔍 No guilds found. Try a different search term.', 
+                        value: 'no-results' 
+                    });
+                }
+            }
+            
+            // Log the choices for debugging
+            console.log(`Join autocomplete choices for "${focusedValue}":`, choices);
+            
+            // Ensure we're responding with valid choices
+            if (choices.length > 0) {
+                await interaction.respond(choices);
+            } else {
+                // Fallback if somehow we have no choices
+                await interaction.respond([
+                    { name: '🔍 No guilds found', value: 'no-results' }
+                ]);
+            }
         } catch (error) {
             console.error('Error in join autocomplete:', error);
-            await interaction.respond([]);
+            // Send a fallback response instead of an empty array
+            await interaction.respond([
+                { name: '❌ Error occurred during search', value: 'error' }
+            ]);
         }
     },
 

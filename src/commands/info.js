@@ -79,12 +79,34 @@ module.exports = {
                     
                     choices.push({ name: prefix + name, value: row.id });
                 });
+                
+                // If no results were found, add a helpful message
+                if (choices.length === 0) {
+                    choices.push({ 
+                        name: '🔍 No results found. Try a different search term.', 
+                        value: 'no-results' 
+                    });
+                }
             }
             
-            await interaction.respond(choices);
+            // Log the choices for debugging
+            console.log(`Autocomplete choices for "${focusedValue}":`, choices);
+            
+            // Ensure we're responding with valid choices
+            if (choices.length > 0) {
+                await interaction.respond(choices);
+            } else {
+                // Fallback if somehow we have no choices
+                await interaction.respond([
+                    { name: '🔍 No results found', value: 'no-results' }
+                ]);
+            }
         } catch (error) {
             console.error('Autocomplete error:', error);
-            await interaction.respond([]);
+            // Send a fallback response instead of an empty array
+            await interaction.respond([
+                { name: '❌ Error occurred during search', value: 'error' }
+            ]);
         }
     },
 
