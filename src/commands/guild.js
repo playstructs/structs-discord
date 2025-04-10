@@ -125,13 +125,18 @@ module.exports = {
 
                 if (!isGuildSetup) {
                     embed.addFields(
-                        { name: 'guild', value: 'No permissions, needs Associations (16)', inline: false }
+                        { name: `Guild (${guildId})`, value: 'No permissions, needs Associations (16)', inline: false }
                     );
                 }
 
                 if (!isSubstationSetup) {
+                    // Check guild role player id
+                    const substationLookup = await db.query(
+                        ' select entry_substation_id from structs.guild where id = $1;',
+                        [guildId]
+                    );
                     embed.addFields(
-                        { name: 'substation', value: 'No permissions, needs Associations (16), Grid (32)', inline: false }
+                        { name: `Substation (${substationLookup.entry_substation_id})`, value: 'No permissions, needs Associations (16), Grid (32)', inline: false }
                     );
                 }
 
