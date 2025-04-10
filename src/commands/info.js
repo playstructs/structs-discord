@@ -357,18 +357,6 @@ async function createInventoryEmbed(playerId, username) {
         if (inventoryResult.rows.length === 0) {
             inventoryEmbed.addFields({ name: 'No Inventory', value: 'This player has no inventory items.' });
         } else {
-            // Calculate total alpha value
-            const totalAlpha = inventoryResult.rows.reduce((sum, row) => sum + (parseFloat(row.alpha_value) || 0), 0);
-            const totalAlphaDisplay = inventoryResult.rows.reduce((sum, row) => {
-                const value = parseFloat(row.display_alpha_value) || 0;
-                return sum + value;
-            }, 0);
-            
-            inventoryEmbed.addFields({ 
-                name: 'Total Alpha Value', 
-                value: `${totalAlphaDisplay.toLocaleString()} α (${totalAlpha.toLocaleString()} ualpha)`,
-                inline: false 
-            });
             
             // Add each token to the embed
             inventoryResult.rows.forEach(row => {
