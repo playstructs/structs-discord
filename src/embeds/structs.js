@@ -43,14 +43,10 @@ const createPlayerEmbed = async (player) => {
             { name: 'Player ID', value: player.player_id , inline: true },
             { name: 'Guild', value: player.guild_name + ' [' + player.guild_id + ']' || 'None', inline: true },
             { name: 'Primary Address', value: player.primary_address || 'None', inline: false },
-            { name: 'Ore', value: player.ore || '0', inline: false },
-            { name: 'Load', value: player.load || '0', inline: true },
-            { name: 'Structs Load', value: player.structs_load || '0', inline: true },
-            { name: 'Capacity', value: player.capacity || '0', inline: true },
-            { name: 'Connection Capacity', value: player.connection_capacity || '0', inline: true },
-            { name: '\u200b', value: '\u200b'},
-            { name: 'Total Load', value: player.total_load || '0', inline: true },
-            { name: 'Total Capacity', value: player.total_capacity || '0', inline: true }
+            { name: 'Structs Energy Consumption', value: player.structs_load || '0W', inline: false },
+            { name: 'Available Allocation Capacity', value: `${player.load}/${player.capacity}`, inline: false },
+            { name: 'Substation Provided Capacity', value: player.connection_capacity || '0W', inline: false },
+            { name: 'Total Energy', value: `${player.total_load}/${player.total_capacity}`, inline: false }
         );
 
     embed.addFields({ name: '\u200b', value: '\u200b'});
