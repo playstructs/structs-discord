@@ -23,21 +23,48 @@ client.once('ready', () => {
     console.log('Bot is ready!');
 });
 
-// Handle slash commands
+// Handle interactions
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isCommand()) return;
-
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
-
     try {
-        await command.execute(interaction);
+        // Log all interactions for debugging
+        console.log('Received interaction:', interaction.type);
+        
+        // Handle autocomplete interactions
+        if (interaction.isAutocomplete()) {
+            console.log('Processing autocomplete interaction for command:', interaction.commandName);
+            const command = client.commands.get(interaction.commandName);
+            
+            if (!command) {
+                console.log('Command not found:', interaction.commandName);
+                return;
+            }
+            
+            try {
+                await command.autocomplete(interaction);
+            } catch (error) {
+                console.error('Error in autocomplete:', error);
+                await interaction.respond([{ name: '❌ Error occurred', value: 'error' }]);
+            }
+            return;
+        }
+        
+        // Handle regular command interactions
+        if (!interaction.isCommand()) return;
+
+        const command = client.commands.get(interaction.commandName);
+        if (!command) return;
+
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ 
+                content: 'There was an error executing this command!', 
+                ephemeral: true 
+            });
+        }
     } catch (error) {
-        console.error(error);
-        await interaction.reply({ 
-            content: 'There was an error executing this command!', 
-            ephemeral: true 
-        });
+        console.error('Error handling interaction:', error);
     }
 });
 
