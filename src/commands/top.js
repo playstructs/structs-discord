@@ -326,7 +326,7 @@ async function createOffersLeaderboard(orderBy) {
             display_provider_cancellation_pentalty,
             display_consumer_cancellation_pentalty,
             player_count
-        FROM structs.provider 
+        FROM view.leaderboard_provider 
         ${orderClause}
         LIMIT 10`,
         []

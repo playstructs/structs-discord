@@ -48,6 +48,14 @@ module.exports = {
                     [guildId]
                 );
 
+
+                // Check guild role player id
+                const guildRole = await db.query(
+                    ' select id from structs.player_meta where guild_id = $1 and username = $1;',
+                    [guildId]
+                );
+
+
                 // Check permissions
                 const permissionResult = await db.query(
                     `SELECT bit_or(permission.val) as val, permission.object_type 
@@ -67,16 +75,19 @@ module.exports = {
                     .setColor('#0099ff');
 
                 // Add join status
-                if (joinResult.rows.length > 0) {
-                    embed.addFields(
-                        { name: 'Join Status', value: 'Pending Authorization', inline: false },
-                        { name: 'Proxy Join Address', value: joinResult.rows[0].primary_address, inline: false },
-                        { name: 'Public Key', value: joinResult.rows[0].pubkey, inline: false },
-                        { name: 'Signature', value: joinResult.rows[0].signature, inline: false }
-                    );
+                if (guildRole.rows.length == 0) {
+                    if (joinResult.rows.length > 0) {
+                        embed.addFields(
+                            {name: 'Join Status', value: 'Pending Authorization', inline: false},
+                            {name: 'Proxy Join Address', value: joinResult.rows[0].primary_address, inline: false},
+                            {name: 'Public Key', value: joinResult.rows[0].pubkey, inline: false},
+                            {name: 'Signature', value: joinResult.rows[0].signature, inline: false}
+                        );
+                    }
                 } else {
                     embed.addFields(
-                        { name: 'Join Status', value: 'Authorization Complete', inline: false }
+                        { name: 'Join Status', value: 'Authorization Complete', inline: false },
+                            { name: 'Bot Player ID', value: guildRole.rows[0].id , inline: false }
                     );
                 }
 
@@ -120,7 +131,7 @@ module.exports = {
 
                 if (!isSubstationSetup) {
                     embed.addFields(
-                        { name: 'substation', value: 'No permissions, needs Associationd (16), Grid (32)', inline: false }
+                        { name: 'substation', value: 'No permissions, needs Associations (16), Grid (32)', inline: false }
                     );
                 }
 
