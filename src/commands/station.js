@@ -75,8 +75,8 @@ module.exports = {
                 inventoryResult.rows.forEach(row => {
                     if (row.token_amount !== 0) {
                         inventoryEmbed.addFields({ 
-                            name: row.denom, 
-                            value: `${row.display_token_amount} (${row.token_amount} ${row.denom})`,
+                            name: `${row.display_token_amount}` , 
+                            value: `(${row.token_amount} ${row.denom})`,
                             inline: false 
                         });
                     }

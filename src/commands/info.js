@@ -362,9 +362,9 @@ async function createInventoryEmbed(playerId, username) {
             inventoryResult.rows.forEach(row => {
                 if (row.token_amount !== 0) {
                     inventoryEmbed.addFields({ 
-                        name: row.denom, 
-                        value: `${row.display_token_amount} (${row.token_amount} ${row.denom})`,
-                        inline: true 
+                        name: `${row.display_token_amount}`, 
+                        value: `(${row.token_amount} ${row.denom})`,
+                        inline: false 
                     });
                 }
             });
