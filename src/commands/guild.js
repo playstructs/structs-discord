@@ -164,7 +164,7 @@ module.exports = {
         const focusedValue = interaction.options.getFocused();
         const subcommand = interaction.options.getSubcommand();
 
-        if (subcommand === 'authorization-status' && focusedValue.name === 'guild') {
+        if (subcommand === 'authorization-status') {
             try {
                 const result = await db.query(
                     `SELECT id, tag, name 
