@@ -232,11 +232,8 @@ module.exports = {
                 [playerId, amount, resource, recipientId]
             );
 
-            if (result.rows[0].tx_wire) {
-                return await interaction.editReply(`✅ Resources sent successfully! Transaction ID: ${result.rows[0].tx_wire}`);
-            } else {
-                return await interaction.editReply('❌ Failed to send resources. Please try again.');
-            }
+            return await interaction.editReply(`✅ Resources probably sent! Check with /search or /station`);
+
         } catch (error) {
             console.error(error);
             return await interaction.editReply('❌ There was an error processing your request.');
