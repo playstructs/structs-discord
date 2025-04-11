@@ -213,23 +213,23 @@ module.exports = {
             }
 
             // Get the recipient's address if we have their ID
-            if (recipientId && !recipientAddress) {
+            if (!recipientId && recipientAddress) {
                 const addressResult = await db.query(
-                    'SELECT address FROM structs.player_address WHERE player_id = $1 LIMIT 1',
-                    [recipientId]
+                    'SELECT player_id FROM structs.player_address WHERE address = $1 LIMIT 1',
+                    [recipientAddress]
                 );
 
                 if (addressResult.rows.length === 0) {
                     return await interaction.editReply('❌ Recipient address not found.');
                 }
 
-                recipientAddress = addressResult.rows[0].address;
+                recipientId = addressResult.rows[0].player_id;
             }
 
             // Send the resources
             const result = await db.query(
                 'SELECT signer.tx_bank_send($1, $2, $3, $4)',
-                [playerId, recipientAddress, resource, amount]
+                [playerId, amount, resource, recipientId]
             );
 
             if (result.rows[0].tx_wire) {
