@@ -136,7 +136,7 @@ module.exports = {
                         [guildId]
                     );
                     embed.addFields(
-                        { name: `Substation (${substationLookup.entry_substation_id})`, value: 'No permissions, needs Associations (16), Grid (32)', inline: false }
+                        { name: `Substation (${substationLookup.rows[0].entry_substation_id})`, value: 'No permissions, needs Associations (16), Grid (32)', inline: false }
                     );
                 }
 
