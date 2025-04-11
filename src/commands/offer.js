@@ -73,6 +73,101 @@ module.exports = {
                 .setRequired(true)
         ),
 
+    async autocomplete(interaction) {
+        const focusedValue = interaction.options.getFocused();
+        const focusedOption = interaction.options.getFocused(true);
+        const choices = [];
+        
+        try {
+            // Get player ID from Discord username
+            const playerResult = await db.query(
+                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
+                [interaction.user.id]
+            );
+
+            if (playerResult.rows.length === 0) {
+                return await interaction.respond([]);
+            }
+
+            const playerId = playerResult.rows[0].player_id;
+
+            if (focusedOption.name === 'substation') {
+                // Handle substation autocomplete
+                const result = await db.query(
+                    `SELECT id, name 
+                     FROM structs.substation 
+                     WHERE owner = $1 
+                     AND (id::text ILIKE $2 OR name ILIKE $2)
+                     LIMIT 25`,
+                    [playerId, `%${focusedValue}%`]
+                );
+
+                await interaction.respond(
+                    result.rows.map(row => ({
+                        name: `${row.name || row.id}`,
+                        value: row.id
+                    }))
+                );
+            } else if (focusedOption.name === 'resource') {
+                // Handle resource autocomplete using the provided SQL query
+                const result = await db.query(
+                    `SELECT
+                         distinct
+                         CASE guild_meta.denom->>'0' WHEN '' THEN 'uguild.'||guild_meta.id ELSE guild_meta.denom->>'0' END as value_smallest,
+                         CASE guild_meta.denom->>'6' WHEN '' THEN 'guild.'||guild_meta.id ELSE guild_meta.denom->>'6' END  as value_normal,
+                         'uguild.'||guild_meta.id as denom,
+                         guild_meta.id as guild_id,
+                         guild_meta.name as guild_name,
+                         guild_meta.tag as guild_tag
+                     from structs.guild_meta;`,
+                    []
+                );
+                
+                // Process the results according to the specified format
+                choices.push(
+                    { name: 'alpha', value: 'alpha' },
+                    { name: 'ualpha', value: 'ualpha' }
+                );
+                result.rows.forEach(row => {
+                    // For guild tokens, add all four format options
+                    choices.push(
+                        {
+                            name: `${row.value_smallest} (uguild.${row.guild_id}) - ${row.guild_name}`,
+                            value: `uguild.${row.guild_id}`
+                        },
+                        {
+                            name: `uguild.${row.guild_id} (${row.value_smallest}) - ${row.guild_name}`,
+                            value: `uguild.${row.guild_id}`
+                        },
+                        {
+                            name: `${row.value_normal} (guild.${row.guild_id}) - ${row.guild_name}`,
+                            value: `guild.${row.guild_id}`
+                        },
+                        {
+                            name: `guild.${row.guild_id} (${row.value_normal}) - ${row.guild_name}`,
+                            value: `guild.${row.guild_id}`
+                        }
+                    );
+
+                });
+                
+                // Filter choices based on user input if provided
+                const filteredChoices = focusedValue 
+                    ? choices.filter(choice => 
+                        choice.name.toLowerCase().includes(focusedValue.toLowerCase()) || 
+                        choice.value.toLowerCase().includes(focusedValue.toLowerCase())
+                    )
+                    : choices;
+                
+                // Limit to 25 choices
+                await interaction.respond(filteredChoices.slice(0, 25));
+            }
+        } catch (error) {
+            console.error('Error in offer autocomplete:', error);
+            await interaction.respond([]);
+        }
+    },
+
     async execute(interaction) {
         await interaction.deferReply();
 
