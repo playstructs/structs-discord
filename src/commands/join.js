@@ -27,11 +27,11 @@ module.exports = {
                 const result = await db.query(
                     `
                     WITH base AS (
-                        SELECT guild_meta.id as name, guild_meta.id as value from guild_meta
+                        SELECT guild_meta.id as name, guild_meta.id as value from guild_meta where this_infrastructure
                         UNION
-                        SELECT guild_meta.name ||'('||guild_meta.id||')' as name, guild_meta.id as value FROM structs.guild_meta 
+                        SELECT guild_meta.name ||'('||guild_meta.id||')' as name, guild_meta.id as value FROM structs.guild_meta WHERE this_infrastructure
                         UNION 
-                        SELECT guild_meta.tag ||'('||guild_meta.id||')' as name, guild_meta.id as value  FROM structs.guild_meta 
+                        SELECT guild_meta.tag ||'('||guild_meta.id||')' as name, guild_meta.id as value  FROM structs.guild_meta WHERE this_infrastructure
                     )
                     SELECT * FROM base
                     WHERE name ILIKE $1
