@@ -142,6 +142,10 @@ module.exports = {
 
                 if (isGuildSetup && isSubstationSetup) {
                     isFullySetup = true;
+                    await db.query(
+                        'UPDATE structs.guild_meta SET this_infrastructure=true where id = $1',
+                        [guildId]
+                    );
                 }
 
                 embed.addFields(
