@@ -85,7 +85,9 @@ module.exports = {
             let guildId;
 
             // Get guild ID from tag or use provided ID
-            if (guildIdentifier.includes('-')) {
+            if (guildIdentifier == 'no-results') {
+                return await interaction.editReply('Error, no selection made');
+            } else if (guildIdentifier.includes('-')) {
                 guildId = guildIdentifier;
             } else {
                 const guildResult = await db.query(
