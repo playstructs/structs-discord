@@ -92,6 +92,7 @@ module.exports = {
                 )
                 SELECT
                     DISTINCT
+                    base.hard_balance,
                     CASE guild_meta.denom->>'0' 
                         WHEN '' THEN 'uguild.'||guild_meta.id 
                         ELSE guild_meta.denom->>'0' 
@@ -120,8 +121,8 @@ module.exports = {
 
             await interaction.respond(
                 result.rows.map(row => ({
-                    name: `${row.guild_name || 'Unknown Guild'} (${row.guild_tag || row.denom}) - Balance: ${row.hard_balance}`,
-                    value: row.value_smallest
+                    name: `${row.value_smallest} (${row.denom}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.hard_balance}`,
+                    value: row.denom
                 }))
             );
         } catch (error) {
