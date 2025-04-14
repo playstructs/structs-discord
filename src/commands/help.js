@@ -25,13 +25,15 @@ module.exports = {
                     },
                     {
                         name: 'Energy Market',
-                        value: '/offer - Create resource offers\n' +
-                              '/buy - Accept offers'
+                        value:  '/redeem - Convert Guild Token to Alpha\n' +
+                                '/offer - Create resource offers\n' +
+                                '/buy - Accept offers'
                     },
                     {
                         name: 'Energy Administration',
-                        value: '/allocate - Set up Energy allocations\n' +
-                              '/connect - Link allocations to substations'
+                        value:  '/allocate - Set up Energy allocations\n' +
+                                '/infuse - Add Alpha Matter for Energy Production\n' +
+                                '/connect - Link allocations to substations'
                     },
                     {
                         name: 'Guild Administration',
