@@ -101,7 +101,7 @@ module.exports = {
                         WHEN '' THEN 'guild.'||guild_meta.id 
                         ELSE guild_meta.denom->>'6' 
                     END as value_normal,
-                    base.denom,
+                    base.denom as denom,
                     guild_meta.id as guild_id,
                     guild_meta.name as guild_name,
                     guild_meta.tag as guild_tag
@@ -121,9 +121,14 @@ module.exports = {
 
             await interaction.respond(
                 result.rows.map(row => ({
-                    name: `${row.value_smallest} (${row.denom}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.hard_balance}`,
+                    name: `${row.value_smallest || ''} (${row.denom}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.hard_balance}`,
                     value: row.denom
-                }))
+                },
+                {
+                    name: `${row.value_normal || ''} (guild.${row.guild_id}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.hard_balance / 10^6}`,
+                    value: `guild.${row.guild_id}`
+                }
+                ))
             );
         } catch (error) {
             console.error('Error in redeem autocomplete:', error);
