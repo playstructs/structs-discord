@@ -75,6 +75,8 @@ module.exports = {
 
             const playerId = playerResult.rows[0].player_id;
 
+            const choices = [];
+
             const result = await db.query(
                 `WITH base AS (
                     SELECT
@@ -93,6 +95,7 @@ module.exports = {
                 SELECT
                     DISTINCT
                     base.hard_balance,
+                    (base.hard_balance / 10^6) as normal_balance,
                     CASE guild_meta.denom->>'0' 
                         WHEN '' THEN 'uguild.'||guild_meta.id 
                         ELSE guild_meta.denom->>'0' 
@@ -119,17 +122,20 @@ module.exports = {
                 [playerId, `%${focusedValue}%`]
             );
 
-            await interaction.respond(
-                result.rows.map(row => ({
-                    name: `${row.value_smallest || ''} (${row.denom}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.hard_balance}`,
-                    value: row.denom
-                },
-                {
-                    name: `${row.value_normal || ''} (guild.${row.guild_id}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.hard_balance / 10^6}`,
-                    value: `guild.${row.guild_id}`
+            result.rows.map(row => {
+                    choices.push(
+                        {
+                            name: `${row.value_smallest || ''} (${row.denom}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.hard_balance}`,
+                            value: `${row.denom}`
+                        },
+                        {
+                            name: `${row.value_normal || ''} (guild.${row.guild_id}) ${row.guild_name || 'Unknown Guild'} [${row.guild_tag || 'N/A'}] - Balance: ${row.normal_balance}`,
+                            value: `guild.${row.guild_id}`
+                        }
+                    )
                 }
-                ))
-            );
+            )
+            await interaction.respond(choices);
         } catch (error) {
             console.error('Error in redeem autocomplete:', error);
             await interaction.respond([]);
