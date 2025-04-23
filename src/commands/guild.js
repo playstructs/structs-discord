@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { EMOJIS } = require('../constants/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -37,7 +38,7 @@ module.exports = {
                         [guildIdentifier]
                     );
                     if (guildResult.rows.length === 0) {
-                        return await interaction.editReply('Guild not found.');
+                        return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Guild not found.`);
                     }
                     guildId = guildResult.rows[0].id;
                 }
@@ -48,13 +49,11 @@ module.exports = {
                     [guildId]
                 );
 
-
                 // Check guild role player id
                 const guildRole = await db.query(
                     ' select id from structs.player_meta where guild_id = $1 and username = $1;',
                     [guildId]
                 );
-
 
                 // Check permissions
                 const permissionResult = await db.query(
@@ -78,16 +77,16 @@ module.exports = {
                 if (guildRole.rows.length == 0) {
                     if (joinResult.rows.length > 0) {
                         embed.addFields(
-                            {name: 'Join Status', value: 'Pending Authorization', inline: false},
-                            {name: 'Proxy Join Address', value: joinResult.rows[0].primary_address, inline: false},
-                            {name: 'Public Key', value: joinResult.rows[0].pubkey, inline: false},
-                            {name: 'Signature', value: joinResult.rows[0].signature, inline: false}
+                            { name: 'Join Status', value: 'Pending Authorization', inline: false },
+                            { name: 'Proxy Join Address', value: joinResult.rows[0].primary_address, inline: false },
+                            { name: 'Public Key', value: joinResult.rows[0].pubkey, inline: false },
+                            { name: 'Signature', value: joinResult.rows[0].signature, inline: false }
                         );
                     }
                 } else {
                     embed.addFields(
                         { name: 'Join Status', value: 'Authorization Complete', inline: false },
-                            { name: 'Bot Player ID', value: guildRole.rows[0].id , inline: false }
+                        { name: 'Bot Player ID', value: guildRole.rows[0].id, inline: false }
                     );
                 }
 
@@ -149,14 +148,14 @@ module.exports = {
                 }
 
                 embed.addFields(
-                    { name: 'Setup Status', value: isFullySetup ? '✅ Bot Successfully Authorized' : '❌ Not Fully Setup', inline: false }
+                    { name: 'Setup Status', value: isFullySetup ? `${EMOJIS.STATUS.SUCCESS} Bot Successfully Authorized` : `${EMOJIS.STATUS.ERROR} Not Fully Setup`, inline: false }
                 );
 
                 await interaction.editReply({ embeds: [embed] });
             }
         } catch (error) {
             console.error('Error executing guild command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`);
         }
     },
 

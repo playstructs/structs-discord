@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
+const { EMOJIS } = require('../constants/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,7 +12,7 @@ module.exports = {
 
         try {
             const embed = new EmbedBuilder()
-                .setTitle(':alpha: Structs Bot Commands :alpha:')
+                .setTitle(`${EMOJIS.CURRENCY.ALPHA} Structs Bot Commands ${EMOJIS.CURRENCY.ALPHA}`)
                 .setColor('#0099ff')
                 .setDescription(    '/join - Join a guild and create an account\n' +
                                     '/station - View your profile\n' +
@@ -23,9 +24,9 @@ module.exports = {
                                     '/offer - Create resource offers\n' +
                                     '/buy - Accept offers\n' +
                                     '## Energy Administration\n' +
-                                    '/allocate - Set up Energy allocations\n' +
+                                    '/allocation create - Set up Energy allocations\n' +
+                                    '/allocation connect - Link allocations to substations\n' +
                                     '/infuse - Add Alpha Matter for Energy Production\n' +
-                                    '/connect - Link allocations to substations\n' +
                                     '## Guild Administration\n' +
                                     '/guild authorization-status - Authorize the Bot for your Guild'
                 ).setFooter({ text: 'Type / to see detailed information about each command' });
@@ -33,7 +34,7 @@ module.exports = {
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {
             console.error('Error executing help command:', error);
-            await interaction.editReply('An error occurred while displaying the help information.');
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while displaying the help information.`);
         }
     }
 }; 

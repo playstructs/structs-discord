@@ -3,6 +3,7 @@ const { fetchPlayerData } = require('../queries/structs');
 const { createEmbeds } = require('../embeds/structs');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { EMOJIS } = require('../constants/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,7 +20,7 @@ module.exports = {
             const data = await fetchPlayerData.byDiscordId(discordId);
             
             if (!data.rows || data.rows.length === 0) {
-                return await interaction.editReply('❌ You are not registered as a player. Use `/join` to register with a guild.');
+                return await interaction.editReply(`${EMOJIS.STATUS.ERROR} You are not registered as a player. Use \`/join\` to register with a guild.`);
             }
 
             const playerId = data.rows[0].player_id;
@@ -61,7 +62,7 @@ module.exports = {
             // Create inventory embed
             const inventoryEmbed = new EmbedBuilder()
                 .setColor(0x0099FF)
-                .setTitle(`Inventory for ${data.rows[0].discord_username} (${playerId})`)
+                .setTitle(`${EMOJIS.STRUCT.CMD} Inventory for ${data.rows[0].discord_username} (${playerId})`)
                 .setDescription('Player inventory and token balances')
                 .setTimestamp()
                 .setFooter({ text: 'Structs Discord Bot' });
@@ -90,7 +91,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Error in /station command:', error);
-            return await interaction.editReply('❌ There was an error fetching your player information. Please try again later.');
+            return await interaction.editReply(`${EMOJIS.STATUS.ERROR} There was an error fetching your player information. Please try again later.`);
         }
     }
 }; 

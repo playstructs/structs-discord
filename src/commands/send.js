@@ -1,5 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { EMOJIS } = require('../constants/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -180,36 +182,46 @@ module.exports = {
             );
 
             if (playerResult.rows.length === 0) {
-                return await interaction.editReply('❌ You are not registered. Please register first.');
+                return await interaction.editReply(`${EMOJIS.STATUS.ERROR} You are not registered. Please register first.`);
             }
 
             const playerId = playerResult.rows[0].player_id;
 
+            // Get sender's Discord username
+            const senderUsername = interaction.user.username;
+
             // Determine the recipient ID based on the input format
             let recipientId;
             let recipientAddress;
+            let recipientUsername;
 
             if (recipient.startsWith('<@')) {
                 // It's a Discord mention
                 const discordId = recipient.replace(/[<@!>]/g, '');
                 const recipientResult = await db.query(
-                    'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
+                    'SELECT player_id, discord_username FROM structs.player_discord WHERE discord_id = $1',
                     [discordId]
                 );
 
                 if (recipientResult.rows.length === 0) {
-                    return await interaction.editReply('❌ Recipient not found. Make sure they are registered.');
+                    return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Recipient not found. Make sure they are registered.`);
                 }
 
                 recipientId = recipientResult.rows[0].player_id;
+                recipientUsername = recipientResult.rows[0].discord_username;
             } else if (recipient.includes('-')) {
                 // It's a player ID
                 recipientId = recipient;
+                const recipientResult = await db.query(
+                    'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                    [recipientId]
+                );
+                recipientUsername = recipientResult.rows[0]?.discord_username || 'Unknown';
             } else if (recipient.startsWith('structs')) {
                 // It's a wallet address
                 recipientAddress = recipient;
             } else {
-                return await interaction.editReply('❌ Invalid recipient format. Use a player ID, @mention, or wallet address.');
+                return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Invalid recipient format. Use a player ID, @mention, or wallet address.`);
             }
 
             // Get the recipient's address if we have their ID
@@ -220,7 +232,7 @@ module.exports = {
                 );
 
                 if (addressResult.rows.length === 0) {
-                    return await interaction.editReply('❌ Recipient address not found.');
+                    return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Recipient address not found.`);
                 }
 
                 recipientId = addressResult.rows[0].player_id;
@@ -232,11 +244,26 @@ module.exports = {
                 [playerId, amount, resource, recipientId]
             );
 
-            return await interaction.editReply(`✅ Resources probably sent! Check with /search or /station`);
+            // Create transaction details embed
+            const embed = new EmbedBuilder()
+                .setColor('#0099ff')
+                .setTitle('Transaction Details')
+                .addFields(
+                    { name: 'From', value: `${senderUsername} (${playerId})`, inline: true },
+                    { name: 'To', value: `${recipientUsername || 'Address'} (${recipientId || recipientAddress})`, inline: true },
+                    { name: 'Amount', value: `${amount} ${resource}`, inline: true }
+                )
+                .setTimestamp()
+                .setFooter({ text: 'Check your balance with /search or /station' });
+
+            return await interaction.editReply({ 
+                content: `${EMOJIS.STATUS.SUCCESS} Resources sent!`,
+                embeds: [embed]
+            });
 
         } catch (error) {
             console.error(error);
-            return await interaction.editReply('❌ There was an error processing your request.');
+            return await interaction.editReply(`${EMOJIS.STATUS.ERROR} There was an error processing your request.`);
         }
     }
 }; 
