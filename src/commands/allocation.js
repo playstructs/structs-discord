@@ -243,7 +243,7 @@ module.exports = {
 
                 // Create the allocation transaction
                 const result = await db.query(
-                    'SELECT signer.tx_allocate($1, $2, $3, $4)',
+                    'SELECT signer.tx_allocation_create($1, $2, $3, $4)',
                     [type, source, amount, destinationAddress]
                 );
 
@@ -280,7 +280,7 @@ module.exports = {
 
                 // Create connection transaction
                 await db.query(
-                    'SELECT signer.tx_substation_allocation_connect($1, $2, $3)',
+                    'SELECT signer.tx_allocation_connect($1, $2, $3)',
                     [playerId, allocationId, substationId]
                 );
 
