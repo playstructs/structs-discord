@@ -42,7 +42,7 @@ module.exports = {
                         UNION 
                         SELECT player_address.address, player_address.player_id FROM structs.player_address
                         UNION
-                        SELECT $1, $1
+                        SELECT trim($1,'%'), trim($1,'%')
                     ) 
                     WHERE name ILIKE $1
                     LIMIT 25`,
