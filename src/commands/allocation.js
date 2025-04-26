@@ -1,5 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { EMOJIS } = require('../constants/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -51,6 +53,35 @@ module.exports = {
                     option
                         .setName('substation')
                         .setDescription('Select a substation')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                ))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('disconnect')
+                .setDescription('Disconnect an allocation from its destination')
+                .addStringOption(option =>
+                    option
+                        .setName('allocation')
+                        .setDescription('Select an allocation to disconnect')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                ))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('transfer')
+                .setDescription('Transfer an allocation to another player')
+                .addStringOption(option =>
+                    option
+                        .setName('allocation')
+                        .setDescription('Select an allocation to transfer')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('controller')
+                        .setDescription('Select the new controller (player address)')
                         .setRequired(true)
                         .setAutocomplete(true)
                 )),
@@ -168,6 +199,80 @@ module.exports = {
                         }))
                     );
                 }
+            } else if (subcommand === 'disconnect') {
+                if (focusedOption.name === 'allocation') {
+                    const result = await db.query(
+                        `SELECT id || ' ' || structs.UNIT_DISPLAY_FORMAT(
+                            (select grid.val from structs.grid where grid.object_index = allocation.index and grid.attribute_type ='power'),
+                            'milliwatt'
+                        ) || ' (' || allocation_type || ' source:' || source_id || ')' as name,
+                        id as value
+                        FROM allocation
+                        WHERE controller IN (
+                            SELECT player_address.address
+                            FROM structs.player_address
+                            WHERE player_address.player_id = $1
+                        )
+                        AND destination_id != ''`,
+                        [playerId]
+                    );
+
+                    await interaction.respond(
+                        result.rows.map(row => ({
+                            name: row.name,
+                            value: row.value
+                        }))
+                    );
+                }
+            } else if (subcommand === 'transfer') {
+                if (focusedOption.name === 'allocation') {
+                    const result = await db.query(
+                        `SELECT id || ' ' || structs.UNIT_DISPLAY_FORMAT(
+                            (select grid.val from structs.grid where grid.object_index = allocation.index and grid.attribute_type ='power'),
+                            'milliwatt'
+                        ) || ' (' || allocation_type || ' source:' || source_id || ')' as name,
+                        id as value
+                        FROM allocation
+                        WHERE controller IN (
+                            SELECT player_address.address
+                            FROM structs.player_address
+                            WHERE player_address.player_id = $1
+                        )
+                        AND destination_id = ''`,
+                        [playerId]
+                    );
+
+                    await interaction.respond(
+                        result.rows.map(row => ({
+                            name: row.name,
+                            value: row.value
+                        }))
+                    );
+                } else if (focusedOption.name === 'controller') {
+                    const result = await db.query(
+                        `WITH base AS (
+                            SELECT id as name, primary_address as value FROM structs.player 
+                            UNION 
+                            SELECT '@' || player_discord.discord_username || '(' || player_discord.discord_id || ')' as name, player.primary_address as value 
+                            FROM structs.player_discord, structs.player 
+                            WHERE player_discord.player_id = player.id 
+                            UNION 
+                            SELECT player_address.address as name, player_address.address as value 
+                            FROM structs.player_address
+                        )
+                        SELECT * FROM base
+                        WHERE name ILIKE $1
+                        LIMIT 25`,
+                        [`%${focusedValue}%`]
+                    );
+
+                    await interaction.respond(
+                        result.rows.map(row => ({
+                            name: row.name,
+                            value: row.value
+                        }))
+                    );
+                }
             }
         } catch (error) {
             console.error('Error in allocation autocomplete:', error);
@@ -226,7 +331,7 @@ module.exports = {
                     }
                     
                     destinationAddress = destination;
-                } else if (destination.includes('-')) {
+                } else {
                     const discordResult = await db.query(
                         'SELECT primary_address from player WHERE id = $1',
                         [destination]
@@ -237,8 +342,6 @@ module.exports = {
                     }
                     
                     destinationAddress = discordResult.rows[0].primary_address;
-                } else {
-                    return await interaction.editReply('Invalid destination format. Use a player ID, @username, or wallet address.');
                 }
 
                 // Create the allocation transaction
@@ -287,6 +390,66 @@ module.exports = {
                 await interaction.editReply(
                     `Successfully connected allocation ${allocationId} to substation ${substationId}.`
                 );
+            } else if (subcommand === 'disconnect') {
+                const allocationId = interaction.options.getString('allocation');
+
+                // Verify allocation exists and is connected
+                const allocationCheck = await db.query(
+                    `SELECT id FROM structs.allocation 
+                     WHERE id = $1 AND destination_id != ''`,
+                    [allocationId]
+                );
+
+                if (allocationCheck.rows.length === 0) {
+                    return await interaction.editReply('Invalid or unconnected allocation selected.');
+                }
+
+                // Disconnect allocation
+                await db.query(
+                    'SELECT signer.tx_allocation_disconnect($1, $2)',
+                    [playerId, allocationId]
+                );
+
+                const embed = new EmbedBuilder()
+                    .setTitle('Allocation Disconnected')
+                    .setColor('#00ff00')
+                    .setDescription('The allocation has been disconnected successfully!')
+                    .addFields(
+                        { name: 'Allocation ID', value: allocationId, inline: true }
+                    );
+
+                await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'transfer') {
+                const allocationId = interaction.options.getString('allocation');
+                const controller = interaction.options.getString('controller');
+
+                // Verify allocation exists and is available
+                const allocationCheck = await db.query(
+                    `SELECT id FROM structs.allocation 
+                     WHERE id = $1 AND destination_id = ''`,
+                    [allocationId]
+                );
+
+                if (allocationCheck.rows.length === 0) {
+                    return await interaction.editReply('Invalid or unavailable allocation selected.');
+                }
+
+                // Transfer allocation
+                await db.query(
+                    'SELECT signer.tx_allocation_transfer($1, $2, $3)',
+                    [playerId, allocationId, controller]
+                );
+
+                const embed = new EmbedBuilder()
+                    .setTitle('Allocation Transferred')
+                    .setColor('#00ff00')
+                    .setDescription('The allocation has been transferred successfully!')
+                    .addFields(
+                        { name: 'Allocation ID', value: allocationId, inline: true },
+                        { name: 'New Controller', value: controller, inline: true }
+                    );
+
+                await interaction.editReply({ embeds: [embed] });
             }
         } catch (error) {
             console.error('Error in allocation command:', error);
