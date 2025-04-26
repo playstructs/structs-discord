@@ -18,8 +18,8 @@ module.exports = {
                         .setDescription('Category of the structure')
                         .setRequired(true)
                         .addChoices(
-                            { name: 'Fleet', value: 'Fleet' },
-                            { name: 'Planetary', value: 'Planetary' }
+                            { name: 'Fleet', value: 'fleet' },
+                            { name: 'Planetary', value: 'planet' }
                         )
                 )
                 .addStringOption(option =>
