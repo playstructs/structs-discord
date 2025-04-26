@@ -54,7 +54,7 @@ module.exports = {
                     '/infuse - Add Alpha Matter for Energy Production\n' +
                     '## Guild Administration\n' +
                     '/guild authorization-status - Authorize the Bot for your Guild'
-                ).setFooter({ text: 'Type / to see detailed information about each command' });
+                );
 
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {

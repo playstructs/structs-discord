@@ -28,10 +28,10 @@ module.exports = {
                         .setDescription('Operating ambit of the structure')
                         .setRequired(true)
                         .addChoices(
-                            { name: `${EMOJIS.AMBIT.SPACE} Space`, value: '16' },
-                            { name: `${EMOJIS.AMBIT.AIR} Air`, value: '8' },
-                            { name: `${EMOJIS.AMBIT.LAND} Land`, value: '4' },
-                            { name: `${EMOJIS.AMBIT.WATER} Water`, value: '2' }
+                            { name: `Space`, value: '16' },
+                            { name: `Air`, value: '8' },
+                            { name: `Land`, value: '4' },
+                            { name: `Water`, value: '2' }
                         )
                 )
                 .addStringOption(option =>
@@ -233,8 +233,8 @@ module.exports = {
                                 UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct_type.id as value 
                          FROM structs.struct_type 
-                         WHERE struct_type.category = $1 
-                         AND possible_ambit = $2
+                         WHERE struct_type.category = lower($1) 
+                         AND  (possible_ambit & $2) > 0
                          AND struct_type.type ILIKE $3
                          LIMIT 25`,
                         [category, parseInt(ambit), `%${focusedValue}%`]
