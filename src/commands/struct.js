@@ -48,8 +48,7 @@ module.exports = {
                         .setRequired(true)
                         .setMinValue(1)
                         .setMaxValue(10)
-                )),
-
+                ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('build')
@@ -67,8 +66,7 @@ module.exports = {
                     .setDescription('Nonce value for the build proof')
                     .setRequired(true)
                     .setMinValue(1)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('activate')
@@ -79,8 +77,7 @@ module.exports = {
                     .setDescription('Select a structure to activate')
                     .setRequired(true)
                     .setAutocomplete(true)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('deactivate')
@@ -91,8 +88,7 @@ module.exports = {
                     .setDescription('Select a structure to deactivate')
                     .setRequired(true)
                     .setAutocomplete(true)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('mine')
@@ -110,8 +106,7 @@ module.exports = {
                     .setDescription('Nonce value for the mining proof')
                     .setRequired(true)
                     .setMinValue(1)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('refine')
@@ -129,8 +124,7 @@ module.exports = {
                     .setDescription('Nonce value for the refining proof')
                     .setRequired(true)
                     .setMinValue(1)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('attack')
@@ -158,8 +152,7 @@ module.exports = {
                         { name: 'Primary Weapon', value: 'primary-weapon' },
                         { name: 'Secondary Weapon', value: 'secondary-weapon' }
                     )
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('defense-clear')
@@ -170,8 +163,7 @@ module.exports = {
                     .setDescription('Select the structure to clear defenses')
                     .setRequired(true)
                     .setAutocomplete(true)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('defense-set')
@@ -189,8 +181,7 @@ module.exports = {
                     .setDescription('Select the structure to protect')
                     .setRequired(true)
                     .setAutocomplete(true)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('stealth-activate')
@@ -201,8 +192,7 @@ module.exports = {
                     .setDescription('Select the structure to activate stealth on')
                     .setRequired(true)
                     .setAutocomplete(true)
-            )),
-
+            ))
     .addSubcommand(subcommand =>
         subcommand
             .setName('stealth-deactivate')
