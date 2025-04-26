@@ -28,10 +28,10 @@ module.exports = {
                         .setDescription('Operating ambit of the structure')
                         .setRequired(true)
                         .addChoices(
-                            { name: 'Space', value: '16' },
-                            { name: 'Air', value: '8' },
-                            { name: 'Land', value: '4' },
-                            { name: 'Water', value: '2' }
+                            { name: `${EMOJIS.AMBIT.SPACE} Space`, value: '16' },
+                            { name: `${EMOJIS.AMBIT.AIR} Air`, value: '8' },
+                            { name: `${EMOJIS.AMBIT.LAND} Land`, value: '4' },
+                            { name: `${EMOJIS.AMBIT.WATER} Water`, value: '2' }
                         )
                 )
                 .addStringOption(option =>
@@ -239,8 +239,8 @@ module.exports = {
                     const ambit = interaction.options.getString('ambit');
 
                     const result = await db.query(
-                        `SELECT struct_type.type as name, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                        `SELECT struct_type.type as name,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct_type.id as value 
                          FROM structs.struct_type 
                          WHERE struct_type.category = $1 
@@ -265,8 +265,8 @@ module.exports = {
                 if (focusedOption.name === 'struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -300,8 +300,8 @@ module.exports = {
                 if (focusedOption.name === 'struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -340,8 +340,8 @@ module.exports = {
                 if (focusedOption.name === 'struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -381,7 +381,7 @@ module.exports = {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
                                 struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -416,8 +416,8 @@ module.exports = {
                 if (focusedOption.name === 'struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -452,8 +452,8 @@ module.exports = {
                 if (focusedOption.name === 'attacker_struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -486,8 +486,8 @@ module.exports = {
                 } else if (focusedOption.name === 'target_struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -515,8 +515,8 @@ module.exports = {
                 if (focusedOption.name === 'defender_struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -550,8 +550,8 @@ module.exports = {
                 if (focusedOption.name === 'defender_struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -583,8 +583,8 @@ module.exports = {
                 } else if (focusedOption.name === 'protected_struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -613,8 +613,8 @@ module.exports = {
                 if (focusedOption.name === 'struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
@@ -654,8 +654,8 @@ module.exports = {
                 if (focusedOption.name === 'struct') {
                     const result = await db.query(
                         `SELECT struct.id || ' ' || struct_type.type as name, 
-                                struct.operating_ambit as ambit, 
-                                UPPER(REPLACE(struct_type.type, ' ', '_')) as icon, 
+                                struct.operating_ambit as ambit,
+                                UPPER(REPLACE(REPLACE(struct_type.type, ' ', '_'),'-','_')) as icon, 
                                 struct.id as value
                          FROM structs.struct, structs.struct_type 
                          WHERE struct.type = struct_type.id 
