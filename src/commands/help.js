@@ -15,11 +15,14 @@ module.exports = {
                 .setTitle(`${EMOJIS.CURRENCY.ALPHA} Structs Bot Commands ${EMOJIS.CURRENCY.ALPHA}`)
                 .setColor('#0099ff')
                 .setDescription(
-                    '/join - Join a guild and create an account\n' +
-                    '/station - View your profile\n' +
                     '/search - Find anything! Players, guilds, and more\n' +
                     '/top - View leaderboards\n' +
+                    '## Player Commands\n' +
+                    '/join - Join a guild and create an account\n' +
+                    '/station - View your profile\n' +
+                    '/explore - Explore a new planet\n' +
                     '/send - Transfer resources\n' +
+                    '/player-resume - Resume your player account after spam detection lockout\n' +
                     '## Struct Commands\n' +
                     '/struct define - Define a new struct\n' +
                     '/struct build - Complete struct construction\n' +
@@ -35,10 +38,7 @@ module.exports = {
                     '## Fleet Commands\n' +
                     '/fleet deploy - Deploy fleet to destination\n' +
                     '/fleet return - Return fleet to planet\n' +
-                    '## Combat Commands\n' +
                     '/raid - Complete a planet raid and steal available Ore\n' +
-                    '## Player Commands\n' +
-                    '/player-resume - Resume your player account after spam detection lockout\n' +
                     '## Energy Market\n' +
                     '/redeem - Convert Guild Token to Alpha\n' +
                     '/offer - Create resource offers\n' +
@@ -48,6 +48,9 @@ module.exports = {
                     '/allocation connect - Link allocations to substations\n' +
                     '/allocation disconnect - Remove an allocations from substations\n' +
                     '/allocation transfer - Transfer an allocation to another player\n' +
+                    '/substation create - Create a new substation\n' +
+                    '/substation player-connect - Connect a player to a substation\n' +
+                    '/substation player-disconnect - Disconnect a player from a substation\n' +
                     '/infuse - Add Alpha Matter for Energy Production\n' +
                     '## Guild Administration\n' +
                     '/guild authorization-status - Authorize the Bot for your Guild'
