@@ -22,7 +22,7 @@ module.exports = {
                     '/station - View your profile\n' +
                     '/explore - Explore a new planet\n' +
                     '/send - Transfer resources\n' +
-                    '/player-resume - Resume your player account after spam detection lockout\n' +
+                    '/player-resume - Resume after spam detection lockout\n' +
                     '## Struct Commands\n' +
                     '/struct define - Define a new struct\n' +
                     '/struct build - Complete struct construction\n' +
@@ -46,14 +46,14 @@ module.exports = {
                     '## Energy Administration\n' +
                     '/allocation create - Set up Energy allocations\n' +
                     '/allocation connect - Link allocations to substations\n' +
-                    '/allocation disconnect - Remove an allocations from substations\n' +
-                    '/allocation transfer - Transfer an allocation to another player\n' +
+                    '/allocation disconnect - Deallocate from substations\n' +
+                    '/allocation transfer - Transfer an allocation to another\n' +
                     '/substation create - Create a new substation\n' +
-                    '/substation player-connect - Connect a player to a substation\n' +
-                    '/substation player-disconnect - Disconnect a player from a substation\n' +
+                    '/substation player-connect - Connect a player\n' +
+                    '/substation player-disconnect - Disconnect a player\n' +
                     '/infuse - Add Alpha Matter for Energy Production\n' +
                     '## Guild Administration\n' +
-                    '/guild authorization-status - Authorize the Bot for your Guild'
+                    '/guild authorization-status - Authorize Bot for Guild'
                 );
 
             await interaction.editReply({ embeds: [embed] });
