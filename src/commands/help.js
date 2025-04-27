@@ -53,7 +53,11 @@ module.exports = {
                     '/substation player-disconnect - Disconnect a player\n' +
                     '/infuse - Add Alpha Matter for Energy Production\n' +
                     '## Guild Administration\n' +
-                    '/guild authorization-status - Authorize Bot for Guild'
+                    '/guild authorization-status - Authorize Bot for Guild\n' +
+                    '## GRASS Notifications\n' +
+                    '/grass subscribe - Subscribe to GRASS notifications\n' +
+                    '/grass unsubscribe - Unsubscribe from GRASS notifications\n' +
+                    '/grass list - List active GRASS subscriptions'
                 );
 
             await interaction.editReply({ embeds: [embed] });
