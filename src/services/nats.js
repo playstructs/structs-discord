@@ -2,6 +2,7 @@ const { connect } = require('nats');
 const { query } = require('../database');
 const { EMOJIS } = require('../constants/emojis');
 const { EmbedBuilder } = require('discord.js');
+require('dotenv').config();
 
 class NATSService {
     constructor() {
@@ -11,16 +12,24 @@ class NATSService {
 
     async initialize() {
         try {
+            const natsUrl = process.env.NATS_URL || 'nats://structs-nats:4222';
+            console.log(`Attempting to connect to NATS server at ${natsUrl}`);
+            
             this.nc = await connect({
-                servers: 'nats://structs-nats:4222'
+                servers: natsUrl,
+                timeout: 5000, // 5 second timeout
+                reconnect: true,
+                maxReconnectAttempts: 5
             });
+            
             console.log('Connected to NATS server');
 
             // Load existing subscriptions from database
             await this.loadSubscriptions();
         } catch (error) {
             console.error('Failed to connect to NATS:', error);
-            throw error;
+            // Don't throw the error, just log it and continue
+            console.log('Continuing without NATS connection');
         }
     }
 

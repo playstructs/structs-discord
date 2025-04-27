@@ -6,6 +6,11 @@ const natsService = require('./src/services/nats');
 // Discord Token
 const token = process.env.DISCORD_TOKEN
 
+if (!token) {
+    console.error('DISCORD_TOKEN is not set in environment variables');
+    process.exit(1);
+}
+
 // Create a new client instance
 const client = new Client({
     intents: [
@@ -24,9 +29,9 @@ client.once('ready', async () => {
     console.log('Bot is ready!');
     try {
         await natsService.initialize();
-        console.log('NATS service initialized');
     } catch (error) {
         console.error('Failed to initialize NATS service:', error);
+        console.log('Bot will continue running without NATS functionality');
     }
 });
 
@@ -76,4 +81,7 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Log in to Discord with your client's token
-client.login(token);
+client.login(token).catch(error => {
+    console.error('Failed to login to Discord:', error);
+    process.exit(1);
+});
