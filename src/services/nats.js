@@ -1,6 +1,7 @@
 const { connect } = require('nats');
 const { query } = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { EmbedBuilder } = require('discord.js');
 
 class NATSService {
     constructor() {
@@ -98,22 +99,199 @@ class NATSService {
             }
 
             // Format message based on category
-            let message = '';
-            switch (data.category) {
-                case 'alert':
-                    message = `${EMOJIS.ALERT} **ALERT**: ${data.message}`;
-                    break;
-                case 'warning':
-                    message = `${EMOJIS.WARNING} **WARNING**: ${data.message}`;
-                    break;
-                case 'info':
-                    message = `${EMOJIS.INFO} **INFO**: ${data.message}`;
-                    break;
-                default:
-                    message = `${EMOJIS.INFO} ${data.message}`;
-            }
+            if (data.category === 'agreement') {
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.INFO} Agreement Update`)
+                    .setColor('#0099ff')
+                    .addFields(
+                        { name: 'Provider ID', value: data.provider_id || 'N/A', inline: true },
+                        { name: 'Allocation ID', value: data.allocation_id || 'N/A', inline: true },
+                        { name: 'Capacity', value: data.capacity?.toString() || 'N/A', inline: true },
+                        { name: 'Start Block', value: data.start_block?.toString() || 'N/A', inline: true },
+                        { name: 'End Block', value: data.end_block?.toString() || 'N/A', inline: true },
+                        { name: 'Creator', value: data.creator || 'N/A', inline: true },
+                        { name: 'Owner', value: data.owner || 'N/A', inline: true }
+                    )
+                    .setTimestamp(data.updated_at || new Date());
 
-            await channel.send(message);
+                await channel.send({ embeds: [embed] });
+            } else if (data.subject?.startsWith('structs.grid.')) {
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.INFO} Grid Update`)
+                    .setColor('#0099ff')
+                    .addFields(
+                        { name: 'Object Type', value: data.object_type || 'N/A', inline: true },
+                        { name: 'Object ID', value: data.object_id || 'N/A', inline: true },
+                        { name: 'Attribute Type', value: data.attribute_type || 'N/A', inline: true },
+                        { name: 'Value', value: data.value?.toString() || 'N/A', inline: true }
+                    )
+                    .setTimestamp(data.updated_at || new Date());
+
+                await channel.send({ embeds: [embed] });
+            } else if (data.subject?.startsWith('structs.guild.')) {
+                let embed;
+                switch (data.category) {
+                    case 'guild_consensus':
+                        embed = new EmbedBuilder()
+                            .setTitle(`${EMOJIS.INFO} Guild Consensus Update`)
+                            .setColor('#0099ff')
+                            .addFields(
+                                { name: 'Guild ID', value: data.id || 'N/A', inline: true },
+                                { name: 'Index', value: data.index?.toString() || 'N/A', inline: true },
+                                { name: 'Endpoint', value: data.endpoint || 'N/A', inline: true },
+                                { name: 'Join Infusion Min', value: data.join_infusion_minimum?.toString() || 'N/A', inline: true },
+                                { name: 'Primary Reactor', value: data.primary_reactor_id || 'N/A', inline: true },
+                                { name: 'Entry Substation', value: data.entry_substation_id || 'N/A', inline: true }
+                            );
+                        break;
+                    case 'guild_meta':
+                        embed = new EmbedBuilder()
+                            .setTitle(`${EMOJIS.INFO} Guild Meta Update`)
+                            .setColor('#0099ff')
+                            .addFields(
+                                { name: 'Guild ID', value: data.id || 'N/A', inline: true },
+                                { name: 'Name', value: data.name || 'N/A', inline: true },
+                                { name: 'Tag', value: data.tag || 'N/A', inline: true },
+                                { name: 'Status', value: data.status || 'N/A', inline: true },
+                                { name: 'Domain', value: data.domain || 'N/A', inline: true },
+                                { name: 'Website', value: data.website || 'N/A', inline: true }
+                            );
+                        break;
+                    case 'guild_membership':
+                        embed = new EmbedBuilder()
+                            .setTitle(`${EMOJIS.INFO} Guild Membership Update`)
+                            .setColor('#0099ff')
+                            .addFields(
+                                { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
+                                { name: 'Player ID', value: data.player_id || 'N/A', inline: true },
+                                { name: 'Join Type', value: data.join_type || 'N/A', inline: true },
+                                { name: 'Status', value: data.status || 'N/A', inline: true },
+                                { name: 'Proposer', value: data.proposer || 'N/A', inline: true },
+                                { name: 'Substation', value: data.substation_id || 'N/A', inline: true }
+                            );
+                        break;
+                }
+
+                if (embed) {
+                    embed.setTimestamp(data.updated_at || new Date());
+                    await channel.send({ embeds: [embed] });
+                }
+            } else if (data.subject?.startsWith('structs.inventory.')) {
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.INFO} Inventory Update`)
+                    .setColor('#0099ff')
+                    .addFields(
+                        { name: 'Action', value: data.action || 'N/A', inline: true },
+                        { name: 'Direction', value: data.direction || 'N/A', inline: true },
+                        { name: 'Amount', value: data.amount?.toString() || 'N/A', inline: true },
+                        { name: 'Denom', value: data.denom || 'N/A', inline: true },
+                        { name: 'Address', value: data.address || 'N/A', inline: true },
+                        { name: 'Counterparty', value: data.counterparty || 'N/A', inline: true },
+                        { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
+                        { name: 'Player ID', value: data.player_id || 'N/A', inline: true },
+                        { name: 'Object ID', value: data.object_id || 'N/A', inline: true },
+                        { name: 'Block Height', value: data.block_height?.toString() || 'N/A', inline: true }
+                    )
+                    .setTimestamp(data.time || new Date());
+
+                await channel.send({ embeds: [embed] });
+            } else if (data.subject?.startsWith('structs.planet.')) {
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.INFO} Planet Activity Update`)
+                    .setColor('#0099ff')
+                    .addFields(
+                        { name: 'Planet ID', value: data.planet_id || 'N/A', inline: true },
+                        { name: 'Sequence', value: data.seq?.toString() || 'N/A', inline: true },
+                        { name: 'Category', value: data.category || 'N/A', inline: true }
+                    );
+
+                // Add detail fields if available and not a stub
+                if (data.detail && !data.stub) {
+                    const detailFields = Object.entries(data.detail).map(([key, value]) => ({
+                        name: key,
+                        value: typeof value === 'object' ? JSON.stringify(value) : value.toString(),
+                        inline: true
+                    }));
+                    embed.addFields(detailFields);
+                }
+
+                embed.setTimestamp(data.time || new Date());
+                await channel.send({ embeds: [embed] });
+            } else if (data.subject?.startsWith('structs.player.')) {
+                let embed;
+                switch (data.category) {
+                    case 'player_consensus':
+                        embed = new EmbedBuilder()
+                            .setTitle(`${EMOJIS.INFO} Player Consensus Update`)
+                            .setColor('#0099ff')
+                            .addFields(
+                                { name: 'Player ID', value: data.id || 'N/A', inline: true },
+                                { name: 'Index', value: data.index?.toString() || 'N/A', inline: true },
+                                { name: 'Creator', value: data.creator || 'N/A', inline: true },
+                                { name: 'Primary Address', value: data.primary_address || 'N/A', inline: true },
+                                { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
+                                { name: 'Substation ID', value: data.substation_id || 'N/A', inline: true },
+                                { name: 'Planet ID', value: data.planet_id || 'N/A', inline: true },
+                                { name: 'Fleet ID', value: data.fleet_id || 'N/A', inline: true }
+                            );
+                        break;
+                    case 'player_meta':
+                        embed = new EmbedBuilder()
+                            .setTitle(`${EMOJIS.INFO} Player Meta Update`)
+                            .setColor('#0099ff')
+                            .addFields(
+                                { name: 'Player ID', value: data.id || 'N/A', inline: true },
+                                { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
+                                { name: 'Username', value: data.username || 'N/A', inline: true },
+                                { name: 'Status', value: data.status || 'N/A', inline: true }
+                            );
+                        break;
+                }
+
+                if (embed) {
+                    embed.setTimestamp(data.updated_at || new Date());
+                    await channel.send({ embeds: [embed] });
+                }
+            } else if (data.subject?.startsWith('structs.provider.')) {
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.INFO} Provider Update`)
+                    .setColor('#0099ff')
+                    .addFields(
+                        { name: 'Provider ID', value: data.id || 'N/A', inline: true },
+                        { name: 'Index', value: data.index?.toString() || 'N/A', inline: true },
+                        { name: 'Substation ID', value: data.substation_id || 'N/A', inline: true },
+                        { name: 'Rate', value: `${data.rate_amount?.toString() || 'N/A'} ${data.rate_denom || ''}`, inline: true },
+                        { name: 'Access Policy', value: data.access_policy || 'N/A', inline: true },
+                        { name: 'Capacity Min', value: data.capacity_minimum?.toString() || 'N/A', inline: true },
+                        { name: 'Capacity Max', value: data.capacity_maximum?.toString() || 'N/A', inline: true },
+                        { name: 'Duration Min', value: data.duration_minimum?.toString() || 'N/A', inline: true },
+                        { name: 'Duration Max', value: data.duration_maximum?.toString() || 'N/A', inline: true },
+                        { name: 'Provider Cancel Penalty', value: data.provider_cancellation_penalty?.toString() || 'N/A', inline: true },
+                        { name: 'Consumer Cancel Penalty', value: data.consumer_cancellation_penalty?.toString() || 'N/A', inline: true },
+                        { name: 'Creator', value: data.creator || 'N/A', inline: true },
+                        { name: 'Owner', value: data.owner || 'N/A', inline: true }
+                    )
+                    .setTimestamp(data.updated_at || new Date());
+
+                await channel.send({ embeds: [embed] });
+            } else {
+                let message = '';
+                switch (data.category) {
+                    case 'alert':
+                        message = `${EMOJIS.ALERT} **ALERT**: ${data.message}`;
+                        break;
+                    case 'warning':
+                        message = `${EMOJIS.WARNING} **WARNING**: ${data.message}`;
+                        break;
+                    case 'info':
+                        message = `${EMOJIS.INFO} **INFO**: ${data.message}`;
+                        break;
+                    default:
+                        message = `${EMOJIS.INFO} ${data.message}`;
+                }
+
+                await channel.send(message);
+            }
         } catch (error) {
             console.error('Error handling message:', error);
         }
