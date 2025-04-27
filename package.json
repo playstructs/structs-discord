@@ -25,6 +25,7 @@
   "dependencies": {
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
+    "nats": "^2.16.0",
     "pg": "^8.11.3"
   },
   "devDependencies": {
@@ -36,7 +37,7 @@
     "collectCoverageFrom": [
       "src/**/*.js",
       "!src/**/*.test.js",
-      "!src/test/**/*.js"
+      "!src/**/*.test.js"
     ]
   }
 }
