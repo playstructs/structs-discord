@@ -1,6 +1,7 @@
 // Require the necessary discord.js classes
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 require('dotenv').config();
+const natsService = require('./src/services/nats');
 
 // Discord Token
 const token = process.env.DISCORD_TOKEN
@@ -19,8 +20,14 @@ const client = new Client({
 client.commands = require('./src/commands');
 
 // When the client is ready, run this code (only once)
-client.once('ready', () => {
+client.once('ready', async () => {
     console.log('Bot is ready!');
+    try {
+        await natsService.initialize();
+        console.log('NATS service initialized');
+    } catch (error) {
+        console.error('Failed to initialize NATS service:', error);
+    }
 });
 
 // Handle interactions
