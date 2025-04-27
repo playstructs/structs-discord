@@ -274,6 +274,16 @@ class NATSService {
                     .setTimestamp(data.updated_at || new Date());
 
                 await channel.send({ embeds: [embed] });
+            } else if (data.subject === 'structs.consensus' && data.category === 'block') {
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.INFO} Block Update`)
+                    .setColor('#0099ff')
+                    .addFields(
+                        { name: 'Height', value: data.height?.toString() || 'N/A', inline: true }
+                    )
+                    .setTimestamp(data.updated_at || new Date());
+
+                await channel.send({ embeds: [embed] });
             } else {
                 let message = '';
                 switch (data.category) {
