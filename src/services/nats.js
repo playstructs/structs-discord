@@ -60,23 +60,27 @@ class NATSService {
     async subscribe(channelId, subscription) {
         try {
             console.log(`Subscribing channel ${channelId} to ${subscription}`);
-            const sub = this.nc.subscribe(subscription);
             
             // Initialize Set if it doesn't exist
             if (!this.subscriptions.has(channelId)) {
                 this.subscriptions.set(channelId, new Set());
             }
-            
-            // Add subscription to channel's Set
-            this.subscriptions.get(channelId).add(sub);
 
-            (async () => {
-                console.log(`Starting message listener for channel ${channelId} on ${subscription}`);
-                for await (const msg of sub) {
+            // Create the subscription with a callback
+            const sub = this.nc.subscribe(subscription, {
+                callback: async (err, msg) => {
+                    if (err) {
+                        console.error(`Error in subscription callback for ${subscription}:`, err);
+                        return;
+                    }
                     console.log(`Received message for channel ${channelId} on ${subscription}`);
                     await this.handleMessage(channelId, msg);
                 }
-            })();
+            });
+            
+            // Add subscription to channel's Set
+            this.subscriptions.get(channelId).add(sub);
+            console.log(`Successfully subscribed channel ${channelId} to ${subscription}`);
 
             return true;
         } catch (error) {
@@ -125,8 +129,14 @@ class NATSService {
                 return;
             }
 
+            console.log('Raw message data:', msg.data);
             const data = JSON.parse(msg.data);
-            console.log('Received message data:', JSON.stringify(data, null, 2));
+            console.log('Parsed message data:', JSON.stringify(data, null, 2));
+
+            if (!data) {
+                console.error('Message data is null or undefined');
+                return;
+            }
 
             // Format message based on category
             if (data.category === 'agreement') {
