@@ -42,11 +42,14 @@ class NATSService {
 
     async loadSubscriptions() {
         try {
+            console.log('Loading subscriptions from database');
             const result = await query(
                 'SELECT channel_id, subscription FROM structs.discord_channel'
             );
 
+            console.log(`Found ${result.rows.length} subscriptions in database`);
             for (const row of result.rows) {
+                console.log(`Loading subscription for channel ${row.channel_id}: ${row.subscription}`);
                 await this.subscribe(row.channel_id, row.subscription);
             }
         } catch (error) {
@@ -56,6 +59,7 @@ class NATSService {
 
     async subscribe(channelId, subscription) {
         try {
+            console.log(`Subscribing channel ${channelId} to ${subscription}`);
             const sub = this.nc.subscribe(subscription);
             
             // Initialize Set if it doesn't exist
@@ -67,7 +71,9 @@ class NATSService {
             this.subscriptions.get(channelId).add(sub);
 
             (async () => {
+                console.log(`Starting message listener for channel ${channelId} on ${subscription}`);
                 for await (const msg of sub) {
+                    console.log(`Received message for channel ${channelId} on ${subscription}`);
                     await this.handleMessage(channelId, msg);
                 }
             })();
@@ -106,11 +112,13 @@ class NATSService {
 
     async handleMessage(channelId, msg) {
         try {
+            console.log(`Handling message for channel ${channelId}`);
             if (!this.discordClient) {
                 console.error('Discord client not initialized');
                 return;
             }
 
+            console.log(`Fetching Discord channel ${channelId}`);
             const channel = await this.discordClient.channels.fetch(channelId);
             if (!channel) {
                 console.error(`Discord channel ${channelId} not found`);
@@ -118,15 +126,15 @@ class NATSService {
             }
 
             const data = JSON.parse(msg.data);
-            console.log('Received message:', data); // Add logging to see what messages are being received
+            console.log('Received message data:', JSON.stringify(data, null, 2));
 
             // Format message based on category
             if (data.category === 'agreement') {
+                console.log('Creating agreement embed');
                 const embed = new EmbedBuilder()
                     .setTitle(`${EMOJIS.INFO} Agreement Update`)
                     .setColor('#0099ff')
                     .addFields(
-                        { name: 'Provider ID', value: data.provider_id || 'N/A', inline: true },
                         { name: 'Allocation ID', value: data.allocation_id || 'N/A', inline: true },
                         { name: 'Capacity', value: data.capacity?.toString() || 'N/A', inline: true },
                         { name: 'Start Block', value: data.start_block?.toString() || 'N/A', inline: true },
@@ -136,7 +144,9 @@ class NATSService {
                     )
                     .setTimestamp(data.updated_at || new Date());
 
+                console.log('Sending agreement embed to Discord');
                 await channel.send({ embeds: [embed] });
+                console.log('Agreement embed sent successfully');
             } else if (data.subject?.startsWith('structs.grid.')) {
                 const embed = new EmbedBuilder()
                     .setTitle(`${EMOJIS.INFO} Grid Update`)
