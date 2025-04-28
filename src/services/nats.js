@@ -9,6 +9,11 @@ class NATSService {
         this.nc = null;
         this.subscriptions = new Map(); // channelId -> Set of subscriptions
         this.isConnected = false;
+        this.discordClient = null; // Will be set when Discord client is ready
+    }
+
+    setDiscordClient(client) {
+        this.discordClient = client;
     }
 
     async initialize() {
@@ -101,13 +106,19 @@ class NATSService {
 
     async handleMessage(channelId, msg) {
         try {
-            const data = JSON.parse(msg.data);
-            const channel = await this.nc.channels.fetch(channelId);
-
-            if (!channel) {
-                console.error(`Channel ${channelId} not found`);
+            if (!this.discordClient) {
+                console.error('Discord client not initialized');
                 return;
             }
+
+            const channel = await this.discordClient.channels.fetch(channelId);
+            if (!channel) {
+                console.error(`Discord channel ${channelId} not found`);
+                return;
+            }
+
+            const data = JSON.parse(msg.data);
+            console.log('Received message:', data); // Add logging to see what messages are being received
 
             // Format message based on category
             if (data.category === 'agreement') {

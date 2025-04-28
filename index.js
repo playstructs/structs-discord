@@ -28,6 +28,7 @@ client.commands = require('./src/commands');
 client.once('ready', async () => {
     console.log('Bot is ready!');
     try {
+        natsService.setDiscordClient(client);
         await natsService.initialize();
     } catch (error) {
         console.error('Failed to initialize NATS service:', error);
@@ -80,8 +81,5 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// Log in to Discord with your client's token
-client.login(token).catch(error => {
-    console.error('Failed to login to Discord:', error);
-    process.exit(1);
-});
+// Login to Discord with your client's token
+client.login(token);
