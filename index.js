@@ -30,6 +30,10 @@ client.once('ready', async () => {
     try {
         natsService.setDiscordClient(client);
         await natsService.initialize();
+        
+        // Test NATS connection
+        console.log('Testing NATS connection...');
+        await natsService.testConnection();
     } catch (error) {
         console.error('Failed to initialize NATS service:', error);
         console.log('Bot will continue running without NATS functionality');

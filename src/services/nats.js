@@ -31,6 +31,29 @@ class NATSService {
             console.log('Connected to NATS server');
             this.isConnected = true;
 
+            // Add connection status monitoring
+            this.nc.closed()
+                .then(() => {
+                    console.log('NATS connection closed');
+                    this.isConnected = false;
+                })
+                .catch(err => {
+                    console.error('NATS connection error:', err);
+                    this.isConnected = false;
+                });
+
+            // Add a test subscription to verify connectivity
+            const testSub = this.nc.subscribe('test.>', {
+                callback: (err, msg) => {
+                    if (err) {
+                        console.error('Test subscription error:', err);
+                        return;
+                    }
+                    console.log('Test message received:', msg.data.toString());
+                }
+            });
+            console.log('Test subscription created');
+
             // Load existing subscriptions from database
             await this.loadSubscriptions();
         } catch (error) {
@@ -74,6 +97,8 @@ class NATSService {
                         return;
                     }
                     console.log(`Received message for channel ${channelId} on ${subscription}`);
+                    console.log('Message subject:', msg.subject);
+                    console.log('Message data:', msg.data.toString());
                     await this.handleMessage(channelId, msg);
                 }
             });
@@ -395,6 +420,24 @@ class NATSService {
         } catch (error) {
             console.error('Error getting channel subscriptions:', error);
             return [];
+        }
+    }
+
+    async testConnection() {
+        try {
+            if (!this.isConnected) {
+                throw new Error('NATS service is not connected');
+            }
+
+            // Publish a test message
+            const testData = { test: 'message', timestamp: new Date().toISOString() };
+            await this.nc.publish('test.connection', JSON.stringify(testData));
+            console.log('Test message published successfully');
+
+            return true;
+        } catch (error) {
+            console.error('Test connection failed:', error);
+            return false;
         }
     }
 }
