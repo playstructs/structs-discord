@@ -38,7 +38,7 @@ class NATSService {
     async loadSubscriptions() {
         try {
             const result = await query(
-                'SELECT channel_id, subscription FROM structs.discord_channel_subscriptions'
+                'SELECT channel_id, subscription FROM structs.discord_channel'
             );
 
             for (const row of result.rows) {
@@ -342,7 +342,7 @@ class NATSService {
         try {
             // Remove from database
             await query(
-                'DELETE FROM structs.discord_channel_subscriptions WHERE channel_id = $1 AND subscription = $2',
+                'DELETE FROM structs.discord_channel WHERE channel_id = $1 AND subscription = $2',
                 [channelId, subscription]
             );
 
@@ -357,7 +357,7 @@ class NATSService {
     async getChannelSubscriptions(channelId) {
         try {
             const result = await query(
-                'SELECT subscription FROM structs.discord_channel_subscriptions WHERE channel_id = $1',
+                'SELECT subscription FROM structs.discord_channel WHERE channel_id = $1',
                 [channelId]
             );
             return result.rows.map(row => row.subscription);
