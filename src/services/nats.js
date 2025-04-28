@@ -326,7 +326,7 @@ class NATSService {
 
             // Add to database
             await query(
-                'INSERT INTO structs.discord_channel_subscriptions (channel_id, subscription) VALUES ($1, $2)',
+                'INSERT INTO structs.discord_channel (channel_id, subscription) VALUES ($1, $2)',
                 [channelId, subscription]
             );
 
