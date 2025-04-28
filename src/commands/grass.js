@@ -43,16 +43,16 @@ module.exports = {
             switch (subcommand) {
                 case 'subscribe': {
                     const subscription = interaction.options.getString('subscription');
-                    const success = await natsService.addSubscription(channelId, subscription);
-                    
-                    if (success) {
+                    try {
+                        await natsService.addSubscription(channelId, subscription);
                         await interaction.reply({
-                            content: `${EMOJIS.SUCCESS} Successfully subscribed to ${subscription}`,
+                            content: `${EMOJIS.STATUS.SUCCESS} Successfully subscribed to ${subscription}`,
                             ephemeral: true
                         });
-                    } else {
+                    } catch (error) {
+                        console.error('Error subscribing:', error);
                         await interaction.reply({
-                            content: `${EMOJIS.ERROR} Failed to subscribe to ${subscription}`,
+                            content: `${EMOJIS.STATUS.ERROR} ${error.message}`,
                             ephemeral: true
                         });
                     }
@@ -60,33 +60,41 @@ module.exports = {
                 }
                 case 'unsubscribe': {
                     const subscription = interaction.options.getString('subscription');
-                    const success = await natsService.removeSubscription(channelId, subscription);
-                    
-                    if (success) {
+                    try {
+                        await natsService.removeSubscription(channelId, subscription);
                         await interaction.reply({
-                            content: `${EMOJIS.SUCCESS} Successfully unsubscribed from ${subscription}`,
+                            content: `${EMOJIS.STATUS.SUCCESS} Successfully unsubscribed from ${subscription}`,
                             ephemeral: true
                         });
-                    } else {
+                    } catch (error) {
+                        console.error('Error unsubscribing:', error);
                         await interaction.reply({
-                            content: `${EMOJIS.ERROR} Failed to unsubscribe from ${subscription}`,
+                            content: `${EMOJIS.STATUS.ERROR} ${error.message}`,
                             ephemeral: true
                         });
                     }
                     break;
                 }
                 case 'list': {
-                    const subscriptions = await natsService.getChannelSubscriptions(channelId);
-                    
-                    if (subscriptions.length === 0) {
+                    try {
+                        const subscriptions = await natsService.getChannelSubscriptions(channelId);
+                        
+                        if (subscriptions.length === 0) {
+                            await interaction.reply({
+                                content: `${EMOJIS.STATUS.INFO} No active subscriptions for this channel`,
+                                ephemeral: true
+                            });
+                        } else {
+                            const subscriptionList = subscriptions.map(sub => `• ${sub}`).join('\n');
+                            await interaction.reply({
+                                content: `${EMOJIS.STATUS.INFO} **Active Subscriptions**:\n${subscriptionList}`,
+                                ephemeral: true
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error listing subscriptions:', error);
                         await interaction.reply({
-                            content: `${EMOJIS.INFO} No active subscriptions for this channel`,
-                            ephemeral: true
-                        });
-                    } else {
-                        const subscriptionList = subscriptions.map(sub => `• ${sub}`).join('\n');
-                        await interaction.reply({
-                            content: `${EMOJIS.INFO} **Active Subscriptions**:\n${subscriptionList}`,
+                            content: `${EMOJIS.STATUS.ERROR} ${error.message}`,
                             ephemeral: true
                         });
                     }
@@ -96,7 +104,7 @@ module.exports = {
         } catch (error) {
             console.error('Error in GRASS command:', error);
             await interaction.reply({
-                content: `${EMOJIS.ERROR} An error occurred while processing your request`,
+                content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request: ${error.message}`,
                 ephemeral: true
             });
         }

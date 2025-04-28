@@ -8,6 +8,7 @@ class NATSService {
     constructor() {
         this.nc = null;
         this.subscriptions = new Map(); // channelId -> Set of subscriptions
+        this.isConnected = false;
     }
 
     async initialize() {
@@ -23,13 +24,14 @@ class NATSService {
             });
             
             console.log('Connected to NATS server');
+            this.isConnected = true;
 
             // Load existing subscriptions from database
             await this.loadSubscriptions();
         } catch (error) {
             console.error('Failed to connect to NATS:', error);
-            // Don't throw the error, just log it and continue
-            console.log('Continuing without NATS connection');
+            this.isConnected = false;
+            throw new Error('Failed to connect to NATS server. Please check if the NATS server is running and accessible.');
         }
     }
 
@@ -318,6 +320,10 @@ class NATSService {
 
     async addSubscription(channelId, subscription) {
         try {
+            if (!this.isConnected) {
+                throw new Error('NATS service is not connected. Please try again later.');
+            }
+
             // Add to database
             await query(
                 'INSERT INTO structs.discord_channel_subscriptions (channel_id, subscription) VALUES ($1, $2)',
@@ -328,7 +334,7 @@ class NATSService {
             return await this.subscribe(channelId, subscription);
         } catch (error) {
             console.error('Error adding subscription:', error);
-            return false;
+            throw error;
         }
     }
 
