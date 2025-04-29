@@ -92,7 +92,7 @@ class NATSService {
             // Check if subscription already exists
             const existingSubs = this.subscriptions.get(channelId);
             for (const sub of existingSubs) {
-                if (sub.subject === subscription) {
+                if (sub.getSubject() === subscription) {
                     console.log(`Subscription ${subscription} already exists for channel ${channelId}`);
                     return true;
                 }
@@ -115,7 +115,7 @@ class NATSService {
             // Add subscription to channel's Set
             this.subscriptions.get(channelId).add(sub);
             console.log(`Successfully subscribed channel ${channelId} to ${subscription}`);
-            console.log(`Current subscriptions for channel ${channelId}:`, Array.from(this.subscriptions.get(channelId)).map(s => s.subject));
+            console.log(`Current subscriptions for channel ${channelId}:`, Array.from(this.subscriptions.get(channelId)).map(s => s.getSubject()));
 
             return true;
         } catch (error) {
@@ -131,7 +131,7 @@ class NATSService {
 
             // Find and unsubscribe the specific subscription
             for (const sub of channelSubs) {
-                if (sub.subject === subscription) {
+                if (sub.getSubject() === subscription) {
                     sub.unsubscribe();
                     channelSubs.delete(sub);
                 }
@@ -191,7 +191,7 @@ class NATSService {
                         { name: 'Creator', value: data.creator || 'N/A', inline: true },
                         { name: 'Owner', value: data.owner || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at || new Date());
+                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
 
                 console.log('Sending agreement embed to Discord');
                 try {
@@ -215,7 +215,7 @@ class NATSService {
                         { name: 'Attribute Type', value: data.attribute_type || 'N/A', inline: true },
                         { name: 'Value', value: data.value?.toString() || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at || new Date());
+                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
 
                 try {
                     await channel.send({ embeds: [embed] });
@@ -273,7 +273,7 @@ class NATSService {
                 }
 
                 if (embed) {
-                    embed.setTimestamp(data.updated_at || new Date());
+                    embed.setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
                     try {
                         await channel.send({ embeds: [embed] });
                         console.log('Guild embed sent successfully');
@@ -379,7 +379,7 @@ class NATSService {
                 }
 
                 if (embed) {
-                    embed.setTimestamp(data.updated_at || new Date());
+                    embed.setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
                     try {
                         await channel.send({ embeds: [embed] });
                         console.log('Player embed sent successfully');
@@ -411,7 +411,7 @@ class NATSService {
                         { name: 'Creator', value: data.creator || 'N/A', inline: true },
                         { name: 'Owner', value: data.owner || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at || new Date());
+                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
 
                 try {
                     await channel.send({ embeds: [embed] });
@@ -431,7 +431,7 @@ class NATSService {
                     .addFields(
                         { name: 'Height', value: data.height?.toString() || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at || new Date());
+                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
 
                 try {
                     await channel.send({ embeds: [embed] });
