@@ -203,6 +203,13 @@ class NATSService {
                 return;
             }
 
+            // Helper function to get the correct timestamp
+            const getTimestamp = (data) => {
+                if (data.time) return new Date(data.time);
+                if (data.updated_at) return new Date(data.updated_at);
+                return new Date();
+            };
+
             // Format message based on category
             if (data.category === 'agreement') {
                 console.log('Creating agreement embed');
@@ -217,7 +224,7 @@ class NATSService {
                         { name: 'Creator', value: data.creator || 'N/A', inline: true },
                         { name: 'Owner', value: data.owner || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
+                    .setTimestamp(getTimestamp(data));
 
                 console.log('Sending agreement embed to Discord');
                 try {
@@ -239,9 +246,9 @@ class NATSService {
                         { name: 'Object Type', value: data.object_type || 'N/A', inline: true },
                         { name: 'Object ID', value: data.object_id || 'N/A', inline: true },
                         { name: 'Attribute Type', value: data.attribute_type || 'N/A', inline: true },
-                        { name: 'Value', value: data.value?.toString() || 'N/A', inline: true }
+                        { name: 'Value', value: data.val?.toString() || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
+                    .setTimestamp(getTimestamp(data));
 
                 try {
                     await channel.send({ embeds: [embed] });
@@ -265,7 +272,7 @@ class NATSService {
                                 { name: 'Guild ID', value: data.id || 'N/A', inline: true },
                                 { name: 'Index', value: data.index?.toString() || 'N/A', inline: true },
                                 { name: 'Endpoint', value: data.endpoint || 'N/A', inline: true },
-                                { name: 'Join Infusion Min', value: data.join_infusion_minimum?.toString() || 'N/A', inline: true },
+                                { name: 'Join Infusion Min', value: data.join_infusion_minimum_p?.toString() || 'N/A', inline: true },
                                 { name: 'Primary Reactor', value: data.primary_reactor_id || 'N/A', inline: true },
                                 { name: 'Entry Substation', value: data.entry_substation_id || 'N/A', inline: true }
                             );
@@ -299,7 +306,7 @@ class NATSService {
                 }
 
                 if (embed) {
-                    embed.setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
+                    embed.setTimestamp(getTimestamp(data));
                     try {
                         await channel.send({ embeds: [embed] });
                         console.log('Guild embed sent successfully');
@@ -319,7 +326,7 @@ class NATSService {
                     .addFields(
                         { name: 'Action', value: data.action || 'N/A', inline: true },
                         { name: 'Direction', value: data.direction || 'N/A', inline: true },
-                        { name: 'Amount', value: data.amount?.toString() || 'N/A', inline: true },
+                        { name: 'Amount', value: data.amount_p?.toString() || 'N/A', inline: true },
                         { name: 'Denom', value: data.denom || 'N/A', inline: true },
                         { name: 'Address', value: data.address || 'N/A', inline: true },
                         { name: 'Counterparty', value: data.counterparty || 'N/A', inline: true },
@@ -328,7 +335,7 @@ class NATSService {
                         { name: 'Object ID', value: data.object_id || 'N/A', inline: true },
                         { name: 'Block Height', value: data.block_height?.toString() || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.time || new Date());
+                    .setTimestamp(getTimestamp(data));
 
                 try {
                     await channel.send({ embeds: [embed] });
@@ -361,7 +368,7 @@ class NATSService {
                     embed.addFields(detailFields);
                 }
 
-                embed.setTimestamp(data.time || new Date());
+                embed.setTimestamp(getTimestamp(data));
                 try {
                     await channel.send({ embeds: [embed] });
                     console.log('Planet embed sent successfully');
@@ -405,7 +412,7 @@ class NATSService {
                 }
 
                 if (embed) {
-                    embed.setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
+                    embed.setTimestamp(getTimestamp(data));
                     try {
                         await channel.send({ embeds: [embed] });
                         console.log('Player embed sent successfully');
@@ -437,7 +444,7 @@ class NATSService {
                         { name: 'Creator', value: data.creator || 'N/A', inline: true },
                         { name: 'Owner', value: data.owner || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
+                    .setTimestamp(getTimestamp(data));
 
                 try {
                     await channel.send({ embeds: [embed] });
@@ -457,7 +464,7 @@ class NATSService {
                     .addFields(
                         { name: 'Height', value: data.height?.toString() || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
+                    .setTimestamp(getTimestamp(data));
 
                 try {
                     await channel.send({ embeds: [embed] });
