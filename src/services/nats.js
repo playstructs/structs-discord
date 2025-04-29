@@ -142,21 +142,28 @@ class NATSService {
     async handleMessage(channelId, msg) {
         try {
             console.log(`Handling message for channel ${channelId}`);
+            console.log('Message subject:', msg.subject);
+            console.log('Raw message data:', msg.data.toString());
+            
             if (!this.discordClient) {
                 console.error('Discord client not initialized');
                 return;
             }
 
-            console.log(`Fetching Discord channel ${channelId}`);
             const channel = await this.discordClient.channels.fetch(channelId);
             if (!channel) {
                 console.error(`Discord channel ${channelId} not found`);
                 return;
             }
 
-            console.log('Raw message data:', msg.data);
-            const data = JSON.parse(msg.data);
-            console.log('Parsed message data:', JSON.stringify(data, null, 2));
+            let data;
+            try {
+                data = JSON.parse(msg.data);
+                console.log('Parsed message data:', JSON.stringify(data, null, 2));
+            } catch (parseError) {
+                console.error('Failed to parse message data:', parseError);
+                return;
+            }
 
             if (!data) {
                 console.error('Message data is null or undefined');
@@ -425,19 +432,23 @@ class NATSService {
 
     async testConnection() {
         try {
-            if (!this.isConnected) {
-                throw new Error('NATS service is not connected');
-            }
-
-            // Publish a test message
-            const testData = { test: 'message', timestamp: new Date().toISOString() };
-            await this.nc.publish('test.connection', JSON.stringify(testData));
+            // Send a test message with proper format
+            const testMessage = {
+                category: 'agreement',
+                allocation_id: 'test-123',
+                capacity: 1000,
+                start_block: 1,
+                end_block: 1000,
+                creator: 'test-creator',
+                owner: 'test-owner',
+                updated_at: new Date().toISOString()
+            };
+            
+            await this.nc.publish('structs.test', JSON.stringify(testMessage));
             console.log('Test message published successfully');
-
-            return true;
         } catch (error) {
-            console.error('Test connection failed:', error);
-            return false;
+            console.error('Failed to test NATS connection:', error);
+            throw error;
         }
     }
 }
