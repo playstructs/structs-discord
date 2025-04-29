@@ -89,6 +89,15 @@ class NATSService {
                 this.subscriptions.set(channelId, new Set());
             }
 
+            // Check if subscription already exists
+            const existingSubs = this.subscriptions.get(channelId);
+            for (const sub of existingSubs) {
+                if (sub.subject === subscription) {
+                    console.log(`Subscription ${subscription} already exists for channel ${channelId}`);
+                    return true;
+                }
+            }
+
             // Create the subscription with a callback
             const sub = this.nc.subscribe(subscription, {
                 callback: async (err, msg) => {
@@ -106,6 +115,7 @@ class NATSService {
             // Add subscription to channel's Set
             this.subscriptions.get(channelId).add(sub);
             console.log(`Successfully subscribed channel ${channelId} to ${subscription}`);
+            console.log(`Current subscriptions for channel ${channelId}:`, Array.from(this.subscriptions.get(channelId)).map(s => s.subject));
 
             return true;
         } catch (error) {
@@ -171,7 +181,7 @@ class NATSService {
             if (data.category === 'agreement') {
                 console.log('Creating agreement embed');
                 const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.INFO} Agreement Update`)
+                    .setTitle(`${EMOJIS.STATUS.INFO} Agreement Update`)
                     .setColor('#0099ff')
                     .addFields(
                         { name: 'Allocation ID', value: data.allocation_id || 'N/A', inline: true },
@@ -197,7 +207,7 @@ class NATSService {
                 }
             } else if (data.subject?.startsWith('structs.grid.')) {
                 const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.INFO} Grid Update`)
+                    .setTitle(`${EMOJIS.STATUS.INFO} Grid Update`)
                     .setColor('#0099ff')
                     .addFields(
                         { name: 'Object Type', value: data.object_type || 'N/A', inline: true },
@@ -223,7 +233,7 @@ class NATSService {
                 switch (data.category) {
                     case 'guild_consensus':
                         embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.INFO} Guild Consensus Update`)
+                            .setTitle(`${EMOJIS.STATUS.INFO} Guild Consensus Update`)
                             .setColor('#0099ff')
                             .addFields(
                                 { name: 'Guild ID', value: data.id || 'N/A', inline: true },
@@ -236,7 +246,7 @@ class NATSService {
                         break;
                     case 'guild_meta':
                         embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.INFO} Guild Meta Update`)
+                            .setTitle(`${EMOJIS.STATUS.INFO} Guild Meta Update`)
                             .setColor('#0099ff')
                             .addFields(
                                 { name: 'Guild ID', value: data.id || 'N/A', inline: true },
@@ -249,7 +259,7 @@ class NATSService {
                         break;
                     case 'guild_membership':
                         embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.INFO} Guild Membership Update`)
+                            .setTitle(`${EMOJIS.STATUS.INFO} Guild Membership Update`)
                             .setColor('#0099ff')
                             .addFields(
                                 { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
@@ -278,7 +288,7 @@ class NATSService {
                 }
             } else if (data.subject?.startsWith('structs.inventory.')) {
                 const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.INFO} Inventory Update`)
+                    .setTitle(`${EMOJIS.STATUS.INFO} Inventory Update`)
                     .setColor('#0099ff')
                     .addFields(
                         { name: 'Action', value: data.action || 'N/A', inline: true },
@@ -307,7 +317,7 @@ class NATSService {
                 }
             } else if (data.subject?.startsWith('structs.planet.')) {
                 const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.INFO} Planet Activity Update`)
+                    .setTitle(`${EMOJIS.STATUS.INFO} Planet Activity Update`)
                     .setColor('#0099ff')
                     .addFields(
                         { name: 'Planet ID', value: data.planet_id || 'N/A', inline: true },
@@ -342,7 +352,7 @@ class NATSService {
                 switch (data.category) {
                     case 'player_consensus':
                         embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.INFO} Player Consensus Update`)
+                            .setTitle(`${EMOJIS.STATUS.INFO} Player Consensus Update`)
                             .setColor('#0099ff')
                             .addFields(
                                 { name: 'Player ID', value: data.id || 'N/A', inline: true },
@@ -357,7 +367,7 @@ class NATSService {
                         break;
                     case 'player_meta':
                         embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.INFO} Player Meta Update`)
+                            .setTitle(`${EMOJIS.STATUS.INFO} Player Meta Update`)
                             .setColor('#0099ff')
                             .addFields(
                                 { name: 'Player ID', value: data.id || 'N/A', inline: true },
@@ -384,7 +394,7 @@ class NATSService {
                 }
             } else if (data.subject?.startsWith('structs.provider.')) {
                 const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.INFO} Provider Update`)
+                    .setTitle(`${EMOJIS.STATUS.INFO} Provider Update`)
                     .setColor('#0099ff')
                     .addFields(
                         { name: 'Provider ID', value: data.id || 'N/A', inline: true },
@@ -416,7 +426,7 @@ class NATSService {
                 }
             } else if (data.subject === 'structs.consensus' && data.category === 'block') {
                 const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.INFO} Block Update`)
+                    .setTitle(`${EMOJIS.STATUS.INFO} Block Update`)
                     .setColor('#0099ff')
                     .addFields(
                         { name: 'Height', value: data.height?.toString() || 'N/A', inline: true }
