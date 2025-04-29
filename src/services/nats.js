@@ -67,7 +67,7 @@ class NATSService {
         try {
             console.log('Loading subscriptions from database');
             const result = await query(
-                'SELECT channel_id, subscription FROM structs.discord_channel'
+                'SELECT DISTINCT channel_id, subscription FROM structs.discord_channel'
             );
 
             console.log(`Found ${result.rows.length} subscriptions in database`);
@@ -148,9 +148,13 @@ class NATSService {
             }
 
             console.log(`Fetching Discord channel ${channelId}`);
-            const channel = await this.discordClient.channels.fetch(channelId);
+            const channel = await this.discordClient.channels.fetch(channelId).catch(err => {
+                console.error(`Error fetching Discord channel ${channelId}:`, err);
+                return null;
+            });
+            
             if (!channel) {
-                console.error(`Discord channel ${channelId} not found`);
+                console.error(`Discord channel ${channelId} not found or bot lacks permissions`);
                 return;
             }
 
@@ -180,8 +184,17 @@ class NATSService {
                     .setTimestamp(data.updated_at || new Date());
 
                 console.log('Sending agreement embed to Discord');
-                await channel.send({ embeds: [embed] });
-                console.log('Agreement embed sent successfully');
+                try {
+                    await channel.send({ embeds: [embed] });
+                    console.log('Agreement embed sent successfully');
+                } catch (err) {
+                    console.error('Error sending message to Discord:', err);
+                    if (err.code === 50001) {
+                        console.error('Bot lacks permission to send messages in this channel');
+                    } else if (err.code === 50013) {
+                        console.error('Bot lacks permission to send embeds in this channel');
+                    }
+                }
             } else if (data.subject?.startsWith('structs.grid.')) {
                 const embed = new EmbedBuilder()
                     .setTitle(`${EMOJIS.INFO} Grid Update`)
@@ -194,7 +207,17 @@ class NATSService {
                     )
                     .setTimestamp(data.updated_at || new Date());
 
-                await channel.send({ embeds: [embed] });
+                try {
+                    await channel.send({ embeds: [embed] });
+                    console.log('Grid embed sent successfully');
+                } catch (err) {
+                    console.error('Error sending grid message to Discord:', err);
+                    if (err.code === 50001) {
+                        console.error('Bot lacks permission to send messages in this channel');
+                    } else if (err.code === 50013) {
+                        console.error('Bot lacks permission to send embeds in this channel');
+                    }
+                }
             } else if (data.subject?.startsWith('structs.guild.')) {
                 let embed;
                 switch (data.category) {
@@ -241,7 +264,17 @@ class NATSService {
 
                 if (embed) {
                     embed.setTimestamp(data.updated_at || new Date());
-                    await channel.send({ embeds: [embed] });
+                    try {
+                        await channel.send({ embeds: [embed] });
+                        console.log('Guild embed sent successfully');
+                    } catch (err) {
+                        console.error('Error sending guild message to Discord:', err);
+                        if (err.code === 50001) {
+                            console.error('Bot lacks permission to send messages in this channel');
+                        } else if (err.code === 50013) {
+                            console.error('Bot lacks permission to send embeds in this channel');
+                        }
+                    }
                 }
             } else if (data.subject?.startsWith('structs.inventory.')) {
                 const embed = new EmbedBuilder()
@@ -261,7 +294,17 @@ class NATSService {
                     )
                     .setTimestamp(data.time || new Date());
 
-                await channel.send({ embeds: [embed] });
+                try {
+                    await channel.send({ embeds: [embed] });
+                    console.log('Inventory embed sent successfully');
+                } catch (err) {
+                    console.error('Error sending inventory message to Discord:', err);
+                    if (err.code === 50001) {
+                        console.error('Bot lacks permission to send messages in this channel');
+                    } else if (err.code === 50013) {
+                        console.error('Bot lacks permission to send embeds in this channel');
+                    }
+                }
             } else if (data.subject?.startsWith('structs.planet.')) {
                 const embed = new EmbedBuilder()
                     .setTitle(`${EMOJIS.INFO} Planet Activity Update`)
@@ -283,7 +326,17 @@ class NATSService {
                 }
 
                 embed.setTimestamp(data.time || new Date());
-                await channel.send({ embeds: [embed] });
+                try {
+                    await channel.send({ embeds: [embed] });
+                    console.log('Planet embed sent successfully');
+                } catch (err) {
+                    console.error('Error sending planet message to Discord:', err);
+                    if (err.code === 50001) {
+                        console.error('Bot lacks permission to send messages in this channel');
+                    } else if (err.code === 50013) {
+                        console.error('Bot lacks permission to send embeds in this channel');
+                    }
+                }
             } else if (data.subject?.startsWith('structs.player.')) {
                 let embed;
                 switch (data.category) {
@@ -317,7 +370,17 @@ class NATSService {
 
                 if (embed) {
                     embed.setTimestamp(data.updated_at || new Date());
-                    await channel.send({ embeds: [embed] });
+                    try {
+                        await channel.send({ embeds: [embed] });
+                        console.log('Player embed sent successfully');
+                    } catch (err) {
+                        console.error('Error sending player message to Discord:', err);
+                        if (err.code === 50001) {
+                            console.error('Bot lacks permission to send messages in this channel');
+                        } else if (err.code === 50013) {
+                            console.error('Bot lacks permission to send embeds in this channel');
+                        }
+                    }
                 }
             } else if (data.subject?.startsWith('structs.provider.')) {
                 const embed = new EmbedBuilder()
@@ -340,7 +403,17 @@ class NATSService {
                     )
                     .setTimestamp(data.updated_at || new Date());
 
-                await channel.send({ embeds: [embed] });
+                try {
+                    await channel.send({ embeds: [embed] });
+                    console.log('Provider embed sent successfully');
+                } catch (err) {
+                    console.error('Error sending provider message to Discord:', err);
+                    if (err.code === 50001) {
+                        console.error('Bot lacks permission to send messages in this channel');
+                    } else if (err.code === 50013) {
+                        console.error('Bot lacks permission to send embeds in this channel');
+                    }
+                }
             } else if (data.subject === 'structs.consensus' && data.category === 'block') {
                 const embed = new EmbedBuilder()
                     .setTitle(`${EMOJIS.INFO} Block Update`)
@@ -350,7 +423,17 @@ class NATSService {
                     )
                     .setTimestamp(data.updated_at || new Date());
 
-                await channel.send({ embeds: [embed] });
+                try {
+                    await channel.send({ embeds: [embed] });
+                    console.log('Block embed sent successfully');
+                } catch (err) {
+                    console.error('Error sending block message to Discord:', err);
+                    if (err.code === 50001) {
+                        console.error('Bot lacks permission to send messages in this channel');
+                    } else if (err.code === 50013) {
+                        console.error('Bot lacks permission to send embeds in this channel');
+                    }
+                }
             } else {
                 let message = '';
                 switch (data.category) {
@@ -367,7 +450,15 @@ class NATSService {
                         message = `${EMOJIS.INFO} ${data.message}`;
                 }
 
-                await channel.send(message);
+                try {
+                    await channel.send(message);
+                    console.log('Simple message sent successfully');
+                } catch (err) {
+                    console.error('Error sending simple message to Discord:', err);
+                    if (err.code === 50001) {
+                        console.error('Bot lacks permission to send messages in this channel');
+                    }
+                }
             }
         } catch (error) {
             console.error('Error handling message:', error);
