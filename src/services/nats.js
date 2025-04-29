@@ -184,7 +184,7 @@ class NATSService {
                         { name: 'Creator', value: data.creator || 'N/A', inline: true },
                         { name: 'Owner', value: data.owner || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at || new Date());
+                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
 
                 console.log('Sending agreement embed to Discord');
                 await channel.send({ embeds: [embed] });
@@ -199,7 +199,7 @@ class NATSService {
                         { name: 'Attribute Type', value: data.attribute_type || 'N/A', inline: true },
                         { name: 'Value', value: data.value?.toString() || 'N/A', inline: true }
                     )
-                    .setTimestamp(data.updated_at || new Date());
+                    .setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
 
                 await channel.send({ embeds: [embed] });
             } else if (data.subject?.startsWith('structs.guild.')) {
@@ -247,7 +247,7 @@ class NATSService {
                 }
 
                 if (embed) {
-                    embed.setTimestamp(data.updated_at || new Date());
+                    embed.setTimestamp(data.updated_at ? new Date(data.updated_at) : new Date());
                     await channel.send({ embeds: [embed] });
                 }
             } else if (data.subject?.startsWith('structs.inventory.')) {
