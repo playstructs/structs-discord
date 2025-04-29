@@ -82,7 +82,9 @@ class NATSService {
 
     async subscribe(channelId, subscription) {
         try {
-            console.log(`Subscribing channel ${channelId} to ${subscription}`);
+            // Clean up the subscription string by removing any quotes
+            const cleanSubscription = subscription.replace(/['"]/g, '');
+            console.log(`Subscribing channel ${channelId} to ${cleanSubscription}`);
             
             // Initialize Set if it doesn't exist
             if (!this.subscriptions.has(channelId)) {
@@ -92,20 +94,20 @@ class NATSService {
             // Check if subscription already exists
             const existingSubs = this.subscriptions.get(channelId);
             for (const sub of existingSubs) {
-                if (sub.getSubject() === subscription) {
-                    console.log(`Subscription ${subscription} already exists for channel ${channelId}`);
+                if (sub.getSubject() === cleanSubscription) {
+                    console.log(`Subscription ${cleanSubscription} already exists for channel ${channelId}`);
                     return true;
                 }
             }
 
             // Create the subscription with a callback
-            const sub = this.nc.subscribe(subscription, {
+            const sub = this.nc.subscribe(cleanSubscription, {
                 callback: async (err, msg) => {
                     if (err) {
-                        console.error(`Error in subscription callback for ${subscription}:`, err);
+                        console.error(`Error in subscription callback for ${cleanSubscription}:`, err);
                         return;
                     }
-                    console.log(`Received message for channel ${channelId} on ${subscription}`);
+                    console.log(`Received message for channel ${channelId} on ${cleanSubscription}`);
                     console.log('Message subject:', msg.subject);
                     console.log('Message data:', msg.data.toString());
                     await this.handleMessage(channelId, msg);
@@ -114,7 +116,7 @@ class NATSService {
             
             // Add subscription to channel's Set
             this.subscriptions.get(channelId).add(sub);
-            console.log(`Successfully subscribed channel ${channelId} to ${subscription}`);
+            console.log(`Successfully subscribed channel ${channelId} to ${cleanSubscription}`);
             console.log(`Current subscriptions for channel ${channelId}:`, Array.from(this.subscriptions.get(channelId)).map(s => s.getSubject()));
 
             return true;
@@ -126,7 +128,10 @@ class NATSService {
 
     async unsubscribe(channelId, subscription) {
         try {
-            console.log(`Unsubscribing channel ${channelId} from ${subscription}`);
+            // Clean up the subscription string by removing any quotes
+            const cleanSubscription = subscription.replace(/['"]/g, '');
+            console.log(`Unsubscribing channel ${channelId} from ${cleanSubscription}`);
+            
             const channelSubs = this.subscriptions.get(channelId);
             if (!channelSubs) {
                 console.log(`No subscriptions found for channel ${channelId}`);
@@ -136,8 +141,8 @@ class NATSService {
             // Find and unsubscribe the specific subscription
             let found = false;
             for (const sub of channelSubs) {
-                if (sub.getSubject() === subscription) {
-                    console.log(`Found subscription ${subscription}, unsubscribing...`);
+                if (sub.getSubject() === cleanSubscription) {
+                    console.log(`Found subscription ${cleanSubscription}, unsubscribing...`);
                     await sub.drain(); // Properly drain the subscription
                     sub.unsubscribe(); // Unsubscribe from NATS
                     channelSubs.delete(sub); // Remove from our tracking
@@ -147,7 +152,7 @@ class NATSService {
             }
 
             if (!found) {
-                console.log(`Subscription ${subscription} not found for channel ${channelId}`);
+                console.log(`Subscription ${cleanSubscription} not found for channel ${channelId}`);
             }
 
             // If no more subscriptions, remove the channel entry
@@ -162,7 +167,7 @@ class NATSService {
                 [channelId, subscription]
             );
 
-            console.log(`Successfully unsubscribed channel ${channelId} from ${subscription}`);
+            console.log(`Successfully unsubscribed channel ${channelId} from ${cleanSubscription}`);
             return true;
         } catch (error) {
             console.error(`Failed to unsubscribe ${channelId} from ${subscription}:`, error);
