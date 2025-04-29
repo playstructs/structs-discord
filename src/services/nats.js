@@ -126,22 +126,43 @@ class NATSService {
 
     async unsubscribe(channelId, subscription) {
         try {
+            console.log(`Unsubscribing channel ${channelId} from ${subscription}`);
             const channelSubs = this.subscriptions.get(channelId);
-            if (!channelSubs) return true;
+            if (!channelSubs) {
+                console.log(`No subscriptions found for channel ${channelId}`);
+                return true;
+            }
 
             // Find and unsubscribe the specific subscription
+            let found = false;
             for (const sub of channelSubs) {
                 if (sub.getSubject() === subscription) {
-                    sub.unsubscribe();
-                    channelSubs.delete(sub);
+                    console.log(`Found subscription ${subscription}, unsubscribing...`);
+                    await sub.drain(); // Properly drain the subscription
+                    sub.unsubscribe(); // Unsubscribe from NATS
+                    channelSubs.delete(sub); // Remove from our tracking
+                    found = true;
+                    break;
                 }
+            }
+
+            if (!found) {
+                console.log(`Subscription ${subscription} not found for channel ${channelId}`);
             }
 
             // If no more subscriptions, remove the channel entry
             if (channelSubs.size === 0) {
+                console.log(`No more subscriptions for channel ${channelId}, removing from tracking`);
                 this.subscriptions.delete(channelId);
             }
 
+            // Remove from database
+            await query(
+                'DELETE FROM structs.discord_channel WHERE channel_id = $1 AND subscription = $2',
+                [channelId, subscription]
+            );
+
+            console.log(`Successfully unsubscribed channel ${channelId} from ${subscription}`);
             return true;
         } catch (error) {
             console.error(`Failed to unsubscribe ${channelId} from ${subscription}:`, error);
