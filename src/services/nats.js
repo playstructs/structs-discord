@@ -210,275 +210,201 @@ class NATSService {
                 return new Date();
             };
 
-            // Format message based on category
+            // Format message based on category and subject
             if (data.category === 'agreement') {
-                console.log('Creating agreement embed');
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STATUS.INFO} Agreement Update`)
-                    .setColor('#0099ff')
-                    .addFields(
-                        { name: 'Allocation ID', value: data.allocation_id || 'N/A', inline: true },
-                        { name: 'Capacity', value: data.capacity?.toString() || 'N/A', inline: true },
-                        { name: 'Start Block', value: data.start_block?.toString() || 'N/A', inline: true },
-                        { name: 'End Block', value: data.end_block?.toString() || 'N/A', inline: true },
-                        { name: 'Creator', value: data.creator || 'N/A', inline: true },
-                        { name: 'Owner', value: data.owner || 'N/A', inline: true }
-                    )
-                    .setTimestamp(getTimestamp(data));
+                const message = [
+                    `${EMOJIS.STATUS.INFO} **Agreement Update**`,
+                    `**Allocation ID:** ${data.allocation_id || 'N/A'}`,
+                    `**Capacity:** ${data.capacity?.toString() || 'N/A'}`,
+                    `**Start Block:** ${data.start_block?.toString() || 'N/A'}`,
+                    `**End Block:** ${data.end_block?.toString() || 'N/A'}`,
+                    `**Creator:** ${data.creator || 'N/A'}`,
+                    `**Owner:** ${data.owner || 'N/A'}`
+                ].join('\n');
 
-                console.log('Sending agreement embed to Discord');
                 try {
-                    await channel.send({ embeds: [embed] });
-                    console.log('Agreement embed sent successfully');
+                    await channel.send(message);
                 } catch (err) {
                     console.error('Error sending message to Discord:', err);
-                    if (err.code === 50001) {
-                        console.error('Bot lacks permission to send messages in this channel');
-                    } else if (err.code === 50013) {
-                        console.error('Bot lacks permission to send embeds in this channel');
-                    }
                 }
             } else if (data.subject?.startsWith('structs.grid.')) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STATUS.INFO} Grid Update`)
-                    .setColor('#0099ff')
-                    .addFields(
-                        { name: 'Object Type', value: data.object_type || 'N/A', inline: true },
-                        { name: 'Object ID', value: data.object_id || 'N/A', inline: true },
-                        { name: 'Attribute Type', value: data.attribute_type || 'N/A', inline: true },
-                        { name: 'Value', value: data.val?.toString() || 'N/A', inline: true }
-                    )
-                    .setTimestamp(getTimestamp(data));
+                const message = [
+                    `${EMOJIS.STATUS.INFO} **Grid Update**`,
+                    `**Object Type:** ${data.object_type || 'N/A'}`,
+                    `**Object ID:** ${data.object_id || 'N/A'}`,
+                    `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
+                    `**Value:** ${data.val?.toString() || 'N/A'}`
+                ].join('\n');
 
                 try {
-                    await channel.send({ embeds: [embed] });
-                    console.log('Grid embed sent successfully');
+                    await channel.send(message);
                 } catch (err) {
-                    console.error('Error sending grid message to Discord:', err);
-                    if (err.code === 50001) {
-                        console.error('Bot lacks permission to send messages in this channel');
-                    } else if (err.code === 50013) {
-                        console.error('Bot lacks permission to send embeds in this channel');
-                    }
+                    console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject?.startsWith('structs.guild.')) {
-                let embed;
+                let message;
                 switch (data.category) {
                     case 'guild_consensus':
-                        embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.STATUS.INFO} Guild Consensus Update`)
-                            .setColor('#0099ff')
-                            .addFields(
-                                { name: 'Guild ID', value: data.id || 'N/A', inline: true },
-                                { name: 'Index', value: data.index?.toString() || 'N/A', inline: true },
-                                { name: 'Endpoint', value: data.endpoint || 'N/A', inline: true },
-                                { name: 'Join Infusion Min', value: data.join_infusion_minimum_p?.toString() || 'N/A', inline: true },
-                                { name: 'Primary Reactor', value: data.primary_reactor_id || 'N/A', inline: true },
-                                { name: 'Entry Substation', value: data.entry_substation_id || 'N/A', inline: true }
-                            );
+                        message = [
+                            `${EMOJIS.STATUS.INFO} **Guild Consensus Update**`,
+                            `**Guild ID:** ${data.id || 'N/A'}`,
+                            `**Index:** ${data.index?.toString() || 'N/A'}`,
+                            `**Endpoint:** ${data.endpoint || 'N/A'}`,
+                            `**Join Infusion Min:** ${data.join_infusion_minimum_p?.toString() || 'N/A'}`,
+                            `**Primary Reactor:** ${data.primary_reactor_id || 'N/A'}`,
+                            `**Entry Substation:** ${data.entry_substation_id || 'N/A'}`
+                        ].join('\n');
                         break;
                     case 'guild_meta':
-                        embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.STATUS.INFO} Guild Meta Update`)
-                            .setColor('#0099ff')
-                            .addFields(
-                                { name: 'Guild ID', value: data.id || 'N/A', inline: true },
-                                { name: 'Name', value: data.name || 'N/A', inline: true },
-                                { name: 'Tag', value: data.tag || 'N/A', inline: true },
-                                { name: 'Status', value: data.status || 'N/A', inline: true },
-                                { name: 'Domain', value: data.domain || 'N/A', inline: true },
-                                { name: 'Website', value: data.website || 'N/A', inline: true }
-                            );
+                        message = [
+                            `${EMOJIS.STATUS.INFO} **Guild Meta Update**`,
+                            `**Guild ID:** ${data.id || 'N/A'}`,
+                            `**Name:** ${data.name || 'N/A'}`,
+                            `**Tag:** ${data.tag || 'N/A'}`,
+                            `**Status:** ${data.status || 'N/A'}`,
+                            `**Domain:** ${data.domain || 'N/A'}`,
+                            `**Website:** ${data.website || 'N/A'}`
+                        ].join('\n');
                         break;
                     case 'guild_membership':
-                        embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.STATUS.INFO} Guild Membership Update`)
-                            .setColor('#0099ff')
-                            .addFields(
-                                { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
-                                { name: 'Player ID', value: data.player_id || 'N/A', inline: true },
-                                { name: 'Join Type', value: data.join_type || 'N/A', inline: true },
-                                { name: 'Status', value: data.status || 'N/A', inline: true },
-                                { name: 'Proposer', value: data.proposer || 'N/A', inline: true },
-                                { name: 'Substation', value: data.substation_id || 'N/A', inline: true }
-                            );
+                        message = [
+                            `${EMOJIS.STATUS.INFO} **Guild Membership Update**`,
+                            `**Guild ID:** ${data.guild_id || 'N/A'}`,
+                            `**Player ID:** ${data.player_id || 'N/A'}`,
+                            `**Join Type:** ${data.join_type || 'N/A'}`,
+                            `**Status:** ${data.status || 'N/A'}`,
+                            `**Proposer:** ${data.proposer || 'N/A'}`,
+                            `**Substation:** ${data.substation_id || 'N/A'}`
+                        ].join('\n');
                         break;
+                    default:
+                        message = [
+                            `${EMOJIS.STATUS.INFO} **Guild Update**`,
+                            `**Guild ID:** ${data.guild_id || 'N/A'}`,
+                            `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
+                            `**Value:** ${data.val?.toString() || 'N/A'}`
+                        ].join('\n');
                 }
 
-                if (embed) {
-                    embed.setTimestamp(getTimestamp(data));
-                    try {
-                        await channel.send({ embeds: [embed] });
-                        console.log('Guild embed sent successfully');
-                    } catch (err) {
-                        console.error('Error sending guild message to Discord:', err);
-                        if (err.code === 50001) {
-                            console.error('Bot lacks permission to send messages in this channel');
-                        } else if (err.code === 50013) {
-                            console.error('Bot lacks permission to send embeds in this channel');
-                        }
-                    }
+                try {
+                    await channel.send(message);
+                } catch (err) {
+                    console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject?.startsWith('structs.inventory.')) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STATUS.INFO} Inventory Update`)
-                    .setColor('#0099ff')
-                    .addFields(
-                        { name: 'Action', value: data.action || 'N/A', inline: true },
-                        { name: 'Direction', value: data.direction || 'N/A', inline: true },
-                        { name: 'Amount', value: data.amount_p?.toString() || 'N/A', inline: true },
-                        { name: 'Denom', value: data.denom || 'N/A', inline: true },
-                        { name: 'Address', value: data.address || 'N/A', inline: true },
-                        { name: 'Counterparty', value: data.counterparty || 'N/A', inline: true },
-                        { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
-                        { name: 'Player ID', value: data.player_id || 'N/A', inline: true },
-                        { name: 'Object ID', value: data.object_id || 'N/A', inline: true },
-                        { name: 'Block Height', value: data.block_height?.toString() || 'N/A', inline: true }
-                    )
-                    .setTimestamp(getTimestamp(data));
+                const message = [
+                    `${EMOJIS.STATUS.INFO} **Inventory Update**`,
+                    `**Action:** ${data.action || 'N/A'}`,
+                    `**Direction:** ${data.direction || 'N/A'}`,
+                    `**Amount:** ${data.amount_p?.toString() || 'N/A'}`,
+                    `**Denom:** ${data.denom || 'N/A'}`,
+                    `**Address:** ${data.address || 'N/A'}`,
+                    `**Counterparty:** ${data.counterparty || 'N/A'}`,
+                    `**Guild ID:** ${data.guild_id || 'N/A'}`,
+                    `**Player ID:** ${data.player_id || 'N/A'}`,
+                    `**Object ID:** ${data.object_id || 'N/A'}`,
+                    `**Block Height:** ${data.block_height?.toString() || 'N/A'}`
+                ].join('\n');
 
                 try {
-                    await channel.send({ embeds: [embed] });
-                    console.log('Inventory embed sent successfully');
+                    await channel.send(message);
                 } catch (err) {
-                    console.error('Error sending inventory message to Discord:', err);
-                    if (err.code === 50001) {
-                        console.error('Bot lacks permission to send messages in this channel');
-                    } else if (err.code === 50013) {
-                        console.error('Bot lacks permission to send embeds in this channel');
-                    }
+                    console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject?.startsWith('structs.planet.')) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STATUS.INFO} Planet Activity Update`)
-                    .setColor('#0099ff')
-                    .addFields(
-                        { name: 'Planet ID', value: data.planet_id || 'N/A', inline: true },
-                        { name: 'Sequence', value: data.seq?.toString() || 'N/A', inline: true },
-                        { name: 'Category', value: data.category || 'N/A', inline: true }
-                    );
+                const message = [
+                    `${EMOJIS.STATUS.INFO} **Planet Activity Update**`,
+                    `**Planet ID:** ${data.planet_id || 'N/A'}`,
+                    `**Sequence:** ${data.seq?.toString() || 'N/A'}`,
+                    `**Category:** ${data.category || 'N/A'}`
+                ].concat(
+                    data.detail && !data.stub
+                        ? Object.entries(data.detail).map(([key, value]) => 
+                            `**${key}:** ${typeof value === 'object' ? JSON.stringify(value) : value.toString()}`
+                        )
+                        : []
+                ).join('\n');
 
-                // Add detail fields if available and not a stub
-                if (data.detail && !data.stub) {
-                    const detailFields = Object.entries(data.detail).map(([key, value]) => ({
-                        name: key,
-                        value: typeof value === 'object' ? JSON.stringify(value) : value.toString(),
-                        inline: true
-                    }));
-                    embed.addFields(detailFields);
-                }
-
-                embed.setTimestamp(getTimestamp(data));
                 try {
-                    await channel.send({ embeds: [embed] });
-                    console.log('Planet embed sent successfully');
+                    await channel.send(message);
                 } catch (err) {
-                    console.error('Error sending planet message to Discord:', err);
-                    if (err.code === 50001) {
-                        console.error('Bot lacks permission to send messages in this channel');
-                    } else if (err.code === 50013) {
-                        console.error('Bot lacks permission to send embeds in this channel');
-                    }
+                    console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject?.startsWith('structs.player.')) {
-                let embed;
+                let message;
                 switch (data.category) {
                     case 'player_consensus':
-                        embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.STATUS.INFO} Player Consensus Update`)
-                            .setColor('#0099ff')
-                            .addFields(
-                                { name: 'Player ID', value: data.id || 'N/A', inline: true },
-                                { name: 'Index', value: data.index?.toString() || 'N/A', inline: true },
-                                { name: 'Creator', value: data.creator || 'N/A', inline: true },
-                                { name: 'Primary Address', value: data.primary_address || 'N/A', inline: true },
-                                { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
-                                { name: 'Substation ID', value: data.substation_id || 'N/A', inline: true },
-                                { name: 'Planet ID', value: data.planet_id || 'N/A', inline: true },
-                                { name: 'Fleet ID', value: data.fleet_id || 'N/A', inline: true }
-                            );
+                        message = [
+                            `${EMOJIS.STATUS.INFO} **Player Consensus Update**`,
+                            `**Player ID:** ${data.id || 'N/A'}`,
+                            `**Index:** ${data.index?.toString() || 'N/A'}`,
+                            `**Creator:** ${data.creator || 'N/A'}`,
+                            `**Primary Address:** ${data.primary_address || 'N/A'}`,
+                            `**Guild ID:** ${data.guild_id || 'N/A'}`,
+                            `**Substation ID:** ${data.substation_id || 'N/A'}`,
+                            `**Planet ID:** ${data.planet_id || 'N/A'}`,
+                            `**Fleet ID:** ${data.fleet_id || 'N/A'}`
+                        ].join('\n');
                         break;
                     case 'player_meta':
-                        embed = new EmbedBuilder()
-                            .setTitle(`${EMOJIS.STATUS.INFO} Player Meta Update`)
-                            .setColor('#0099ff')
-                            .addFields(
-                                { name: 'Player ID', value: data.id || 'N/A', inline: true },
-                                { name: 'Guild ID', value: data.guild_id || 'N/A', inline: true },
-                                { name: 'Username', value: data.username || 'N/A', inline: true },
-                                { name: 'Status', value: data.status || 'N/A', inline: true }
-                            );
+                        message = [
+                            `${EMOJIS.STATUS.INFO} **Player Meta Update**`,
+                            `**Player ID:** ${data.id || 'N/A'}`,
+                            `**Guild ID:** ${data.guild_id || 'N/A'}`,
+                            `**Username:** ${data.username || 'N/A'}`,
+                            `**Status:** ${data.status || 'N/A'}`
+                        ].join('\n');
                         break;
+                    default:
+                        message = [
+                            `${EMOJIS.STATUS.INFO} **Player Update**`,
+                            `**Player ID:** ${data.player_id || 'N/A'}`,
+                            `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
+                            `**Value:** ${data.val?.toString() || 'N/A'}`
+                        ].join('\n');
                 }
 
-                if (embed) {
-                    embed.setTimestamp(getTimestamp(data));
-                    try {
-                        await channel.send({ embeds: [embed] });
-                        console.log('Player embed sent successfully');
-                    } catch (err) {
-                        console.error('Error sending player message to Discord:', err);
-                        if (err.code === 50001) {
-                            console.error('Bot lacks permission to send messages in this channel');
-                        } else if (err.code === 50013) {
-                            console.error('Bot lacks permission to send embeds in this channel');
-                        }
-                    }
+                try {
+                    await channel.send(message);
+                } catch (err) {
+                    console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject?.startsWith('structs.provider.')) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STATUS.INFO} Provider Update`)
-                    .setColor('#0099ff')
-                    .addFields(
-                        { name: 'Provider ID', value: data.id || 'N/A', inline: true },
-                        { name: 'Index', value: data.index?.toString() || 'N/A', inline: true },
-                        { name: 'Substation ID', value: data.substation_id || 'N/A', inline: true },
-                        { name: 'Rate', value: `${data.rate_amount?.toString() || 'N/A'} ${data.rate_denom || ''}`, inline: true },
-                        { name: 'Access Policy', value: data.access_policy || 'N/A', inline: true },
-                        { name: 'Capacity Min', value: data.capacity_minimum?.toString() || 'N/A', inline: true },
-                        { name: 'Capacity Max', value: data.capacity_maximum?.toString() || 'N/A', inline: true },
-                        { name: 'Duration Min', value: data.duration_minimum?.toString() || 'N/A', inline: true },
-                        { name: 'Duration Max', value: data.duration_maximum?.toString() || 'N/A', inline: true },
-                        { name: 'Provider Cancel Penalty', value: data.provider_cancellation_penalty?.toString() || 'N/A', inline: true },
-                        { name: 'Consumer Cancel Penalty', value: data.consumer_cancellation_penalty?.toString() || 'N/A', inline: true },
-                        { name: 'Creator', value: data.creator || 'N/A', inline: true },
-                        { name: 'Owner', value: data.owner || 'N/A', inline: true }
-                    )
-                    .setTimestamp(getTimestamp(data));
+                const message = [
+                    `${EMOJIS.STATUS.INFO} **Provider Update**`,
+                    `**Provider ID:** ${data.id || 'N/A'}`,
+                    `**Index:** ${data.index?.toString() || 'N/A'}`,
+                    `**Substation ID:** ${data.substation_id || 'N/A'}`,
+                    `**Rate:** ${data.rate_amount?.toString() || 'N/A'} ${data.rate_denom || ''}`,
+                    `**Access Policy:** ${data.access_policy || 'N/A'}`,
+                    `**Capacity Min:** ${data.capacity_minimum?.toString() || 'N/A'}`,
+                    `**Capacity Max:** ${data.capacity_maximum?.toString() || 'N/A'}`,
+                    `**Duration Min:** ${data.duration_minimum?.toString() || 'N/A'}`,
+                    `**Duration Max:** ${data.duration_maximum?.toString() || 'N/A'}`,
+                    `**Provider Cancel Penalty:** ${data.provider_cancellation_penalty?.toString() || 'N/A'}`,
+                    `**Consumer Cancel Penalty:** ${data.consumer_cancellation_penalty?.toString() || 'N/A'}`,
+                    `**Creator:** ${data.creator || 'N/A'}`,
+                    `**Owner:** ${data.owner || 'N/A'}`
+                ].join('\n');
 
                 try {
-                    await channel.send({ embeds: [embed] });
-                    console.log('Provider embed sent successfully');
+                    await channel.send(message);
                 } catch (err) {
-                    console.error('Error sending provider message to Discord:', err);
-                    if (err.code === 50001) {
-                        console.error('Bot lacks permission to send messages in this channel');
-                    } else if (err.code === 50013) {
-                        console.error('Bot lacks permission to send embeds in this channel');
-                    }
+                    console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject === 'structs.consensus' && data.category === 'block') {
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STATUS.INFO} Block Update`)
-                    .setColor('#0099ff')
-                    .addFields(
-                        { name: 'Height', value: data.height?.toString() || 'N/A', inline: true }
-                    )
-                    .setTimestamp(getTimestamp(data));
+                const message = [
+                    `${EMOJIS.STATUS.INFO} **Block Update**`,
+                    `**Height:** ${data.height?.toString() || 'N/A'}`
+                ].join('\n');
 
                 try {
-                    await channel.send({ embeds: [embed] });
-                    console.log('Block embed sent successfully');
+                    await channel.send(message);
                 } catch (err) {
-                    console.error('Error sending block message to Discord:', err);
-                    if (err.code === 50001) {
-                        console.error('Bot lacks permission to send messages in this channel');
-                    } else if (err.code === 50013) {
-                        console.error('Bot lacks permission to send embeds in this channel');
-                    }
+                    console.error('Error sending message to Discord:', err);
                 }
             } else {
-                let message = '';
+                let message;
                 switch (data.category) {
                     case 'alert':
                         message = `${EMOJIS.ALERT} **ALERT**: ${data.message}`;
@@ -495,12 +421,8 @@ class NATSService {
 
                 try {
                     await channel.send(message);
-                    console.log('Simple message sent successfully');
                 } catch (err) {
-                    console.error('Error sending simple message to Discord:', err);
-                    if (err.code === 50001) {
-                        console.error('Bot lacks permission to send messages in this channel');
-                    }
+                    console.error('Error sending message to Discord:', err);
                 }
             }
         } catch (error) {
