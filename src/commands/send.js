@@ -168,7 +168,7 @@ module.exports = {
     },
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const resource = interaction.options.getString('resource');
@@ -239,15 +239,10 @@ module.exports = {
             }
 
             // Send the resources
-            const result = await db.query(
-                'SELECT signer.tx_bank_send($1, $2, $3, $4)',
-                [playerId, amount, resource, recipientId]
-            );
-
-            // Create transaction details embed
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
-                .setTitle('Transaction Details')
+                .setTitle('Transfer Request Submitted')
+                .setDescription('Your resource transfer request has been submitted for processing.')
                 .addFields(
                     { name: 'From', value: `${senderUsername} (${playerId})`, inline: true },
                     { name: 'To', value: `${recipientUsername || 'Address'} (${recipientId || recipientAddress})`, inline: true },
@@ -256,14 +251,24 @@ module.exports = {
                 .setTimestamp()
                 .setFooter({ text: 'Check your balance with /search or /station' });
 
+            await interaction.editReply({ 
+                content: `${EMOJIS.STATUS.SUCCESS} Transfer request submitted!`,
+                embeds: [embed]
+            });
+
+            const result = await db.query(
+                'SELECT signer.tx_bank_send($1, $2, $3, $4)',
+                [playerId, amount, resource, recipientId]
+            );
+
             return await interaction.editReply({ 
                 content: `${EMOJIS.STATUS.SUCCESS} Resources sent!`,
                 embeds: [embed]
             });
 
         } catch (error) {
-            console.error(error);
-            return await interaction.editReply(`${EMOJIS.STATUS.ERROR} There was an error processing your request.`);
+            console.error('Error executing send command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your transfer request.`);
         }
     }
 }; 

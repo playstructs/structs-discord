@@ -1,4 +1,4 @@
-const EMOJIS = {
+export const EMOJIS = {
     CURRENCY: {
         ALPHA: '<:alpha:993629386328780800>',
         ORE: '<:ResourceAlphaOre:1184963957983821888>',
@@ -42,16 +42,25 @@ const EMOJIS = {
         PLANETARY: '<:Planetary:1184963888626798683>'
     },
     STATUS: {
-        SUCCESS: '✅',
-        ERROR: '❌',
-        WARNING: '⚠️',
-        INFO: 'ℹ️'
+        SUCCESS: '<:SystemSuccess:1184989068547858482>',
+        ERROR: '<:SystemUnkown:1184989072020750356>',
+        WARNING: '<:SystemAlert:1184988793221173388>',
+        INFO: '<:SystemInfo:1184988947210829925>'
     },
     AMBIT: {
         SPACE: '<:RangeSpace:1184963890233221190>',
         AIR: '<:RangeAir:1184963886856810526>',
         LAND: '<:RangeLand:1184963888626798683>',
         WATER: '<:RangeWater:1184963891537645659>'
+    },
+    SYSTEM: {
+        ADD: '<:SystemAdd:1184988792063524954>',
+        SUBTRACT: '<:SystemSubtract:1184989022897065995>',
+        PLANETARY_BEACON: '<:TilePlanetaryBeacon:1185073734940377119>',
+        FLEET_TERRITORY: '<:TileFleetTerritory:1185073736311910401>',
+        MEMBER_DIRECTORY: '<:SystemMemberDirectory:1184988949299601428>',
+        PLANET: '<:SystemPlanet:1184989018853740614>',
+        GUILD_DIRECTORY: '<:SystemGuildDirectory:1184988944232894464>'
     }
 };
 

@@ -11,7 +11,7 @@ module.exports = {
         .setDescription('View your player profile and information'),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const discordId = interaction.user.id;
@@ -90,8 +90,8 @@ module.exports = {
             return await interaction.editReply({ embeds });
 
         } catch (error) {
-            console.error('Error in /station command:', error);
-            return await interaction.editReply(`${EMOJIS.STATUS.ERROR} There was an error fetching your player information. Please try again later.`);
+            console.error('Error executing station command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while fetching your station information.`);
         }
     }
 }; 

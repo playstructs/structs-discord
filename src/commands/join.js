@@ -78,7 +78,7 @@ module.exports = {
     },
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const guildIdentifier = interaction.options.getString('guild');
@@ -131,8 +131,8 @@ module.exports = {
 
             return await interaction.editReply('Your join request has been submitted. The backend process will handle your registration. You will be able to use more commands once your registration is complete.');
         } catch (error) {
-            console.error('Error handling guild join:', error);
-            return await interaction.editReply('An error occurred while processing your join request.');
+            console.error('Error executing join command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your join request.`);
         }
     }
 }; 

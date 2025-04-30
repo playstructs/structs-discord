@@ -59,7 +59,7 @@ module.exports = {
     },
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
         const subcommand = interaction.options.getSubcommand();
 
         try {
@@ -78,21 +78,21 @@ module.exports = {
                 const fleetId = playerResult.rows[0].fleet_id;
                 const destinationId = interaction.options.getString('destination');
 
-                // Execute the fleet move transaction
-                await db.query(
-                    'SELECT signer.tx_fleet_move($1, $2, $3)',
-                    [playerId, fleetId, destinationId]
-                );
-
                 const embed = new EmbedBuilder()
-                    .setTitle('Fleet Deployed')
+                    .setTitle('Fleet Deployment Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully deployed your fleet!')
+                    .setDescription('Your fleet deployment request has been submitted for processing.')
                     .addFields(
                         { name: 'Destination', value: destinationId, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
+
+                // Execute the fleet move transaction
+                await db.query(
+                    'SELECT signer.tx_fleet_move($1, $2, $3)',
+                    [playerId, fleetId, destinationId]
+                );
             } else if (subcommand === 'return') {
                 // Get player ID, fleet ID, and planet ID
                 const playerResult = await db.query(
@@ -112,25 +112,25 @@ module.exports = {
                     return await interaction.editReply('You do not have a planet to return to.');
                 }
 
-                // Execute the fleet move transaction
-                await db.query(
-                    'SELECT signer.tx_fleet_move($1, $2, $3)',
-                    [playerId, fleetId, planetId]
-                );
-
                 const embed = new EmbedBuilder()
-                    .setTitle('Fleet Returning')
+                    .setTitle('Fleet Return Submitted')
                     .setColor('#00ff00')
-                    .setDescription('Your fleet is returning to your planet!')
+                    .setDescription('Your fleet return request has been submitted for processing.')
                     .addFields(
                         { name: 'Destination', value: planetId, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
+
+                // Execute the fleet move transaction
+                await db.query(
+                    'SELECT signer.tx_fleet_move($1, $2, $3)',
+                    [playerId, fleetId, planetId]
+                );
             }
         } catch (error) {
-            console.error('Error in fleet command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            console.error('Error executing fleet command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your fleet request.`);
         }
     }
 }; 

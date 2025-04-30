@@ -16,7 +16,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             // Get player ID and fleet ID
@@ -33,6 +33,16 @@ module.exports = {
             const fleetId = playerResult.rows[0].fleet_id;
             const nonce = interaction.options.getInteger('nonce');
 
+            const embed = new EmbedBuilder()
+                .setTitle('Raid Request Submitted')
+                .setColor('#00ff00')
+                .setDescription('Your raid request has been submitted for processing.')
+                .addFields(
+                    { name: 'Nonce', value: nonce.toString(), inline: true }
+                );
+
+            await interaction.editReply({ embeds: [embed] });
+
             // Generate SHA-256 hash of the nonce
             const proof = crypto.createHash('sha256')
                 .update(nonce.toString())
@@ -43,19 +53,9 @@ module.exports = {
                 'SELECT signer.tx_planet_raid_complete($1, $2, $3, $4)',
                 [playerId, fleetId, proof, nonce]
             );
-
-            const embed = new EmbedBuilder()
-                .setTitle('Raid Completed')
-                .setColor('#00ff00')
-                .setDescription('You have successfully completed a raid!')
-                .addFields(
-                    { name: 'Nonce', value: nonce.toString(), inline: true }
-                );
-
-            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error in raid command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            console.error('Error executing raid command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your raid request.`);
         }
     }
 }; 

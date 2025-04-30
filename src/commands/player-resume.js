@@ -8,7 +8,7 @@ module.exports = {
         .setDescription('Resume your player account'),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             // Get player ID
@@ -23,21 +23,24 @@ module.exports = {
 
             const playerId = playerResult.rows[0].player_id;
 
+            const embed = new EmbedBuilder()
+                .setTitle('Resume Request Submitted')
+                .setColor('#00ff00')
+                .setDescription('Your account resume request has been submitted for processing.')
+                .addFields(
+                    { name: 'Player ID', value: playerId, inline: true }
+                );
+
+            await interaction.editReply({ embeds: [embed] });
+
             // Execute the player resume transaction
             await db.query(
                 'SELECT signer.tx_player_resume($1)',
                 [playerId]
             );
-
-            const embed = new EmbedBuilder()
-                .setTitle('Account Resumed')
-                .setColor('#00ff00')
-                .setDescription('You have successfully resumed your player account!');
-
-            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error in player-resume command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            console.error('Error executing player-resume command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your resume request.`);
         }
     }
 }; 

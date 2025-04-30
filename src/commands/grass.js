@@ -36,6 +36,8 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        await interaction.deferReply({ ephemeral: true });
+
         const channelId = interaction.channelId;
         const subcommand = interaction.options.getSubcommand();
 
@@ -45,13 +47,13 @@ module.exports = {
                     const subscription = interaction.options.getString('subscription');
                     try {
                         await natsService.addSubscription(channelId, subscription);
-                        await interaction.reply({
+                        await interaction.editReply({
                             content: `${EMOJIS.STATUS.SUCCESS} Successfully subscribed to ${subscription}`,
                             ephemeral: true
                         });
                     } catch (error) {
                         console.error('Error subscribing:', error);
-                        await interaction.reply({
+                        await interaction.editReply({
                             content: `${EMOJIS.STATUS.ERROR} ${error.message}`,
                             ephemeral: true
                         });
@@ -62,13 +64,13 @@ module.exports = {
                     const subscription = interaction.options.getString('subscription');
                     try {
                         await natsService.removeSubscription(channelId, subscription);
-                        await interaction.reply({
+                        await interaction.editReply({
                             content: `${EMOJIS.STATUS.SUCCESS} Successfully unsubscribed from ${subscription}`,
                             ephemeral: true
                         });
                     } catch (error) {
                         console.error('Error unsubscribing:', error);
-                        await interaction.reply({
+                        await interaction.editReply({
                             content: `${EMOJIS.STATUS.ERROR} ${error.message}`,
                             ephemeral: true
                         });
@@ -80,20 +82,20 @@ module.exports = {
                     const subscriptions = await natsService.getChannelSubscriptions(channelId);
                     
                     if (subscriptions.length === 0) {
-                        await interaction.reply({
+                        await interaction.editReply({
                                 content: `${EMOJIS.STATUS.INFO} No active subscriptions for this channel`,
                             ephemeral: true
                         });
                     } else {
                         const subscriptionList = subscriptions.map(sub => `• ${sub}`).join('\n');
-                        await interaction.reply({
+                        await interaction.editReply({
                                 content: `${EMOJIS.STATUS.INFO} **Active Subscriptions**:\n${subscriptionList}`,
                                 ephemeral: true
                             });
                         }
                     } catch (error) {
                         console.error('Error listing subscriptions:', error);
-                        await interaction.reply({
+                        await interaction.editReply({
                             content: `${EMOJIS.STATUS.ERROR} ${error.message}`,
                             ephemeral: true
                         });
@@ -102,11 +104,8 @@ module.exports = {
                 }
             }
         } catch (error) {
-            console.error('Error in GRASS command:', error);
-            await interaction.reply({
-                content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request: ${error.message}`,
-                ephemeral: true
-            });
+            console.error('Error executing grass command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your grass request.`);
         }
     }
 }; 

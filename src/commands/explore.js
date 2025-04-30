@@ -9,7 +9,7 @@ module.exports = {
         .setDescription('Explore the game world to discover new resources and opportunities'),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             // Get player ID from Discord username
@@ -24,24 +24,24 @@ module.exports = {
 
             const playerId = playerResult.rows[0].player_id;
 
-            // Execute the explore transaction
-            await db.query(
-                'SELECT signer.tx_explore($1)',
-                [playerId]
-            );
-
             const embed = new EmbedBuilder()
-                .setTitle('Exploration Complete')
+                .setTitle('Exploration Request Submitted')
                 .setColor('#00ff00')
-                .setDescription('You have successfully explored the area!')
+                .setDescription('Your exploration request has been submitted for processing.')
                 .addFields(
                     { name: 'Player ID', value: playerId, inline: true }
                 );
 
             await interaction.editReply({ embeds: [embed] });
+
+            // Execute the explore transaction
+            await db.query(
+                'SELECT signer.tx_explore($1)',
+                [playerId]
+            );
         } catch (error) {
-            console.error('Error in explore command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            console.error('Error executing explore command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your exploration request.`);
         }
     }
 }; 

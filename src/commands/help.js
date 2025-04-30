@@ -8,7 +8,7 @@ module.exports = {
         .setDescription('Display all available commands'),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const embed = new EmbedBuilder()

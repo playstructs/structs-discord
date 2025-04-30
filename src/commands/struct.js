@@ -689,7 +689,7 @@ module.exports = {
     },
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
         const subcommand = interaction.options.getSubcommand();
 
         try {
@@ -711,16 +711,10 @@ module.exports = {
                 const structType = interaction.options.getString('struct_type');
                 const slot = interaction.options.getInteger('slot');
 
-                // Execute the structure definition transaction
-                await db.query(
-                    'SELECT signer.tx_struct_build_initiate($1, $2, $3, $4)',
-                    [playerId, parseInt(structType), ambit, slot]
-                );
-
                 const embed = new EmbedBuilder()
-                    .setTitle('Structure Defined')
+                    .setTitle('Structure Definition Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully defined a new structure!')
+                    .setDescription('Your structure definition has been submitted for processing.')
                     .addFields(
                         { name: 'Category', value: category, inline: true },
                         { name: 'Ambit', value: ambit, inline: true },
@@ -728,9 +722,26 @@ module.exports = {
                     );
 
                 await interaction.editReply({ embeds: [embed] });
+
+                // Execute the structure definition transaction
+                await db.query(
+                    'SELECT signer.tx_struct_build_initiate($1, $2, $3, $4)',
+                    [playerId, parseInt(structType), ambit, slot]
+                );
             } else if (subcommand === 'build') {
                 const structId = interaction.options.getString('struct');
                 const nonce = interaction.options.getInteger('nonce');
+
+                const embed = new EmbedBuilder()
+                    .setTitle('Structure Build Submitted')
+                    .setColor('#00ff00')
+                    .setDescription('Your structure build request has been submitted for processing.')
+                    .addFields(
+                        { name: 'Structure ID', value: structId, inline: true },
+                        { name: 'Nonce', value: nonce.toString(), inline: true }
+                    );
+
+                await interaction.editReply({ embeds: [embed] });
 
                 // Generate SHA-256 hash of the nonce
                 const proof = crypto.createHash('sha256')
@@ -742,56 +753,56 @@ module.exports = {
                     'SELECT signer.tx_struct_build_complete($1, $2, $3, $4)',
                     [playerId, structId, proof, nonce]
                 );
+            } else if (subcommand === 'activate') {
+                const structId = interaction.options.getString('struct');
 
                 const embed = new EmbedBuilder()
-                    .setTitle('Structure Built')
+                    .setTitle('Structure Activation Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully completed the construction of your structure!')
+                    .setDescription('Your structure activation request has been submitted for processing.')
                     .addFields(
-                        { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true }
+                        { name: 'Structure ID', value: structId, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
-            } else if (subcommand === 'activate') {
-                const structId = interaction.options.getString('struct');
 
                 // Execute the structure activation transaction
                 await db.query(
                     'SELECT signer.tx_struct_activate($1, $2)',
                     [playerId, structId]
                 );
+            } else if (subcommand === 'deactivate') {
+                const structId = interaction.options.getString('struct');
 
                 const embed = new EmbedBuilder()
-                    .setTitle('Structure Activated')
+                    .setTitle('Structure Deactivation Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully activated your structure!')
+                    .setDescription('Your structure deactivation request has been submitted for processing.')
                     .addFields(
                         { name: 'Structure ID', value: structId, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
-            } else if (subcommand === 'deactivate') {
-                const structId = interaction.options.getString('struct');
 
                 // Execute the structure deactivation transaction
                 await db.query(
                     'SELECT signer.tx_struct_deactivate($1, $2)',
                     [playerId, structId]
                 );
-
-                const embed = new EmbedBuilder()
-                    .setTitle('Structure Deactivated')
-                    .setColor('#00ff00')
-                    .setDescription('You have successfully deactivated your structure!')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'mine') {
                 const structId = interaction.options.getString('struct');
                 const nonce = interaction.options.getInteger('nonce');
+
+                const embed = new EmbedBuilder()
+                    .setTitle('Mining Request Submitted')
+                    .setColor('#00ff00')
+                    .setDescription('Your mining request has been submitted for processing.')
+                    .addFields(
+                        { name: 'Structure ID', value: structId, inline: true },
+                        { name: 'Nonce', value: nonce.toString(), inline: true }
+                    );
+
+                await interaction.editReply({ embeds: [embed] });
 
                 // Generate SHA-256 hash of the nonce
                 const proof = crypto.createHash('sha256')
@@ -803,20 +814,20 @@ module.exports = {
                     'SELECT signer.tx_struct_ore_mine_complete($1, $2, $3, $4)',
                     [playerId, structId, proof, nonce]
                 );
+            } else if (subcommand === 'refine') {
+                const structId = interaction.options.getString('struct');
+                const nonce = interaction.options.getInteger('nonce');
 
                 const embed = new EmbedBuilder()
-                    .setTitle('Mining Complete')
+                    .setTitle('Refining Request Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully mined resources from your structure!')
+                    .setDescription('Your refining request has been submitted for processing.')
                     .addFields(
                         { name: 'Structure ID', value: structId, inline: true },
                         { name: 'Nonce', value: nonce.toString(), inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
-            } else if (subcommand === 'refine') {
-                const structId = interaction.options.getString('struct');
-                const nonce = interaction.options.getInteger('nonce');
 
                 // Generate SHA-256 hash of the nonce
                 const proof = crypto.createHash('sha256')
@@ -828,32 +839,15 @@ module.exports = {
                     'SELECT signer.tx_struct_ore_refine_complete($1, $2, $3, $4)',
                     [playerId, structId, proof, nonce]
                 );
-
-                const embed = new EmbedBuilder()
-                    .setTitle('Refining Complete')
-                    .setColor('#00ff00')
-                    .setDescription('You have successfully refined resources in your structure!')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'attack') {
                 const attackerStructId = interaction.options.getString('attacker_struct');
                 const targetStructId = interaction.options.getString('target_struct');
                 const weaponSystem = interaction.options.getString('weapon_system');
 
-                // Execute the structure attack transaction
-                await db.query(
-                    'SELECT signer.tx_struct_attack($1, $2, $3, $4)',
-                    [playerId, attackerStructId, targetStructId, weaponSystem]
-                );
-
                 const embed = new EmbedBuilder()
-                    .setTitle('Attack Launched')
+                    .setTitle('Attack Request Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully launched an attack!')
+                    .setDescription('Your attack request has been submitted for processing.')
                     .addFields(
                         { name: 'Attacker Structure', value: attackerStructId, inline: true },
                         { name: 'Target Structure', value: targetStructId, inline: true },
@@ -861,84 +855,90 @@ module.exports = {
                     );
 
                 await interaction.editReply({ embeds: [embed] });
+
+                // Execute the structure attack transaction
+                await db.query(
+                    'SELECT signer.tx_struct_attack($1, $2, $3, $4)',
+                    [playerId, attackerStructId, targetStructId, weaponSystem]
+                );
             } else if (subcommand === 'defense-clear') {
                 const defenderStructId = interaction.options.getString('defender_struct');
+
+                const embed = new EmbedBuilder()
+                    .setTitle('Defense Clear Request Submitted')
+                    .setColor('#00ff00')
+                    .setDescription('Your defense clear request has been submitted for processing.')
+                    .addFields(
+                        { name: 'Structure ID', value: defenderStructId, inline: true }
+                    );
+
+                await interaction.editReply({ embeds: [embed] });
 
                 // Execute the structure defense clear transaction
                 await db.query(
                     'SELECT signer.tx_struct_defense_clear($1, $2)',
                     [playerId, defenderStructId]
                 );
-
-                const embed = new EmbedBuilder()
-                    .setTitle('Defense Systems Cleared')
-                    .setColor('#00ff00')
-                    .setDescription('You have successfully cleared the defense systems of your structure!')
-                    .addFields(
-                        { name: 'Structure ID', value: defenderStructId, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'defense-set') {
                 const defenderStructId = interaction.options.getString('defender_struct');
                 const protectedStructId = interaction.options.getString('protected_struct');
 
-                // Execute the structure defense set transaction
-                await db.query(
-                    'SELECT signer.tx_struct_defense_set($1, $2, $3)',
-                    [playerId, defenderStructId, protectedStructId]
-                );
-
                 const embed = new EmbedBuilder()
-                    .setTitle('Defense System Set')
+                    .setTitle('Defense Set Request Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully set up a defense system!')
+                    .setDescription('Your defense set request has been submitted for processing.')
                     .addFields(
                         { name: 'Defender Structure', value: defenderStructId, inline: true },
                         { name: 'Protected Structure', value: protectedStructId, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
+
+                // Execute the structure defense set transaction
+                await db.query(
+                    'SELECT signer.tx_struct_defense_set($1, $2, $3)',
+                    [playerId, defenderStructId, protectedStructId]
+                );
             } else if (subcommand === 'stealth-activate') {
                 const structId = interaction.options.getString('struct');
+
+                const embed = new EmbedBuilder()
+                    .setTitle('Stealth Activation Submitted')
+                    .setColor('#00ff00')
+                    .setDescription('Your stealth activation request has been submitted for processing.')
+                    .addFields(
+                        { name: 'Structure ID', value: structId, inline: true }
+                    );
+
+                await interaction.editReply({ embeds: [embed] });
 
                 // Execute the structure stealth activation transaction
                 await db.query(
                     'SELECT signer.tx_struct_stealth_activate($1, $2)',
                     [playerId, structId]
                 );
+            } else if (subcommand === 'stealth-deactivate') {
+                const structId = interaction.options.getString('struct');
 
                 const embed = new EmbedBuilder()
-                    .setTitle('Stealth Systems Activated')
+                    .setTitle('Stealth Deactivation Submitted')
                     .setColor('#00ff00')
-                    .setDescription('You have successfully activated stealth systems on your structure!')
+                    .setDescription('Your stealth deactivation request has been submitted for processing.')
                     .addFields(
                         { name: 'Structure ID', value: structId, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
-            } else if (subcommand === 'stealth-deactivate') {
-                const structId = interaction.options.getString('struct');
 
                 // Execute the structure stealth deactivation transaction
                 await db.query(
                     'SELECT signer.tx_struct_stealth_deactivate($1, $2)',
                     [playerId, structId]
                 );
-
-                const embed = new EmbedBuilder()
-                    .setTitle('Stealth Systems Deactivated')
-                    .setColor('#00ff00')
-                    .setDescription('You have successfully deactivated stealth systems on your structure!')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
             }
         } catch (error) {
-            console.error('Error in struct command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            console.error('Error executing struct command:', error);
+            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your struct request.`);
         }
     }
 }; 
