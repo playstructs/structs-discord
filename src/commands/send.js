@@ -261,11 +261,6 @@ module.exports = {
                 [playerId, amount, resource, recipientId]
             );
 
-            return await interaction.editReply({ 
-                content: `${EMOJIS.STATUS.SUCCESS} Resources sent!`,
-                embeds: [embed]
-            });
-
         } catch (error) {
             console.error('Error executing send command:', error);
             await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your transfer request.`);
