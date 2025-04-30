@@ -1,4 +1,4 @@
-export const EMOJIS = {
+const EMOJIS = {
     CURRENCY: {
         ALPHA: '<:alpha:993629386328780800>',
         ORE: '<:ResourceAlphaOre:1184963957983821888>',
