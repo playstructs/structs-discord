@@ -1,3 +1,5 @@
+const { EMOJIS } = require('../constants/emojis');
+
 /**
  * Formats an amount with its appropriate unit based on the denomination
  * @param {number} amount - The amount to format
@@ -33,7 +35,7 @@ function formatUnit(amount, denom, guildMeta = null) {
             }
         })();
 
-        formatAmount = (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
+        formatAmount = EMOJIS.CURRENCY.ALPHA + (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
     } else if (denom.startsWith('uguild')) {
         currentLength = Math.floor(amount).toString().length;
 
@@ -73,7 +75,7 @@ function formatUnit(amount, denom, guildMeta = null) {
             }
         })();
 
-        formatAmount = (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
+        formatAmount = EMOJIS.CURRENCY.ENERGY + (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
     } else if (denom === 'ore') {
         currentLength = Math.floor(amount).toString().length;
 
@@ -92,7 +94,7 @@ function formatUnit(amount, denom, guildMeta = null) {
             }
         })();
 
-        formatAmount = (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
+        formatAmount = EMOJIS.CURRENCY.ORE + (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
     }
 
     return formatAmount;
