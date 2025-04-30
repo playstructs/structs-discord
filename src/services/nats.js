@@ -2,6 +2,7 @@ const { connect } = require('nats');
 const { query } = require('../database');
 const { EMOJIS } = require('../constants/emojis');
 const { EmbedBuilder } = require('discord.js');
+const { formatUnit } = require('../utils/format');
 require('dotenv').config();
 
 class NATSService {
@@ -292,19 +293,44 @@ class NATSService {
                     console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject?.startsWith('structs.inventory.')) {
-                const message = [
-                    `${EMOJIS.STATUS.INFO} **Inventory Update**`,
-                    `**Action:** ${data.action || 'N/A'}`,
-                    `**Direction:** ${data.direction || 'N/A'}`,
-                    `**Amount:** ${data.amount_p?.toString() || 'N/A'}`,
-                    `**Denom:** ${data.denom || 'N/A'}`,
-                    `**Address:** ${data.address || 'N/A'}`,
-                    `**Counterparty:** ${data.counterparty || 'N/A'}`,
-                    `**Guild ID:** ${data.guild_id || 'N/A'}`,
-                    `**Player ID:** ${data.player_id || 'N/A'}`,
-                    `**Object ID:** ${data.object_id || 'N/A'}`,
-                    `**Block Height:** ${data.block_height?.toString() || 'N/A'}`
-                ].join('\n');
+                //CREATE TYPE structs.ledger_action AS ENUM ('genesis','received','sent','migrated','infused','defused','mined','refined','seized','forfeited','minted','burned');
+                if (data.category === 'received') {
+
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const counterparty_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = (SELECT player_id FROM structs.player_address WHERE address = $1)',
+                        [data.counterparty]
+                    );
+
+                    const message = [
+                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0].discord_username || data.player_id}**`,
+                        `received **${formatUnit(data.amount_p, data.denom)}**`,
+                        `from **${counterparty_discord_username.rows[0].discord_username || data.counterparty}**`,
+                        `(**Block Height:** ${data.block_height?.toString() || 'N/A'})`
+                    ].join(' ');
+                }  else if (data.category === 'sent') {
+
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const counterparty_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = (SELECT player_id FROM structs.player_address WHERE address = $1)',
+                        [data.counterparty]
+                    );
+
+                    const message = [
+                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0].discord_username || data.player_id}**`,
+                        `sent **${formatUnit(data.amount_p, data.denom)}**`,
+                        `to **${counterparty_discord_username.rows[0].discord_username || data.counterparty}**`,
+                        `(**Block Height:** ${data.block_height?.toString() || 'N/A'})`
+                    ].join(' ');
+                }
 
                 try {
                     await channel.send(message);

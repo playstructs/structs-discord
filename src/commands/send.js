@@ -241,7 +241,6 @@ module.exports = {
             // Send the resources
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
-                .setTitle('Transfer Request Submitted')
                 .setDescription('Your resource transfer request has been submitted for processing.')
                 .addFields(
                     { name: 'From', value: `${senderUsername} (${playerId})`, inline: true },
