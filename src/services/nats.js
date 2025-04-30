@@ -295,7 +295,6 @@ class NATSService {
             } else if (data.subject?.startsWith('structs.inventory.')) {
                 //CREATE TYPE structs.ledger_action AS ENUM ('genesis','received','sent','migrated','infused','defused','mined','refined','seized','forfeited','minted','burned');
                 if (data.category === 'received') {
-
                     const player_discord_username = await query(
                         'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
                         [data.player_id]
@@ -307,13 +306,18 @@ class NATSService {
                     );
 
                     const message = [
-                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0].discord_username || data.player_id}**`,
+                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0]?.discord_username || data.player_id}**`,
                         `received **${formatUnit(data.amount_p, data.denom)}**`,
-                        `from **${counterparty_discord_username.rows[0].discord_username || data.counterparty}**`,
+                        `from **${counterparty_discord_username.rows[0]?.discord_username || data.counterparty}**`,
                         `(**Block Height:** ${data.block_height?.toString() || 'N/A'})`
                     ].join(' ');
-                }  else if (data.category === 'sent') {
 
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.category === 'sent') {
                     const player_discord_username = await query(
                         'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
                         [data.player_id]
@@ -325,17 +329,17 @@ class NATSService {
                     );
 
                     const message = [
-                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0].discord_username || data.player_id}**`,
+                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0]?.discord_username || data.player_id}**`,
                         `sent **${formatUnit(data.amount_p, data.denom)}**`,
-                        `to **${counterparty_discord_username.rows[0].discord_username || data.counterparty}**`,
+                        `to **${counterparty_discord_username.rows[0]?.discord_username || data.counterparty}**`,
                         `(**Block Height:** ${data.block_height?.toString() || 'N/A'})`
                     ].join(' ');
-                }
 
-                try {
-                    await channel.send(message);
-                } catch (err) {
-                    console.error('Error sending message to Discord:', err);
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
                 }
             } else if (data.subject?.startsWith('structs.planet.')) {
                 const message = [
