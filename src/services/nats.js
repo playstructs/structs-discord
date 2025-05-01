@@ -261,25 +261,36 @@ class NATSService {
                             `${player_discord_username.rows[0]?.discord_username || data.object_id}`,
                             `Ore hoard change from ${await formatUnit(data.value_old,'ore')} to ${await formatUnit(data.value,'ore')}`
                         ].join(' ');
+                        try {
+                            await channel.send(message);
+                        } catch (err) {
+                            console.error('Error sending message to Discord:', err);
+                        }
                     } else {
                         const message = [
                             `${EMOJIS.SYSTEM.GRID}`,
                             `Remaining Ore Detected on Planet ${data.object_id}`,
                             `${await formatUnit(data.value,'ore')}`
-                        ].join(' ');                    
+                        ].join(' ');      
+                        try {
+                            await channel.send(message);
+                        } catch (err) {
+                            console.error('Error sending message to Discord:', err);
+                        }              
                     }
 
-                    try {
-                        await channel.send(message);
-                    } catch (err) {
-                        console.error('Error sending message to Discord:', err);
-                    }
+
                 } else if (data.attribute_type === 'fuel') {
                     if (data.object_type === 'struct') {
                         const message = [
                             `${EMOJIS.SYSTEM.GRID} ${await formatUnit(data.value_old,'ore')} fuel`,
                             `added to Generating Struct ${data.object_id}`
                         ].join(' ');
+                        try {
+                            await channel.send(message);
+                        } catch (err) {
+                            console.error('Error sending message to Discord:', err);
+                        }
                     } else {
                         const message = [
                             `${EMOJIS.SYSTEM.GRID} Reactor Fuel Change`,
@@ -287,13 +298,14 @@ class NATSService {
                             `to`,
                             `${await formatUnit(data.value,'ore')}`
                         ].join(' ');
+                        try {
+                            await channel.send(message);
+                        } catch (err) {
+                            console.error('Error sending message to Discord:', err);
+                        }
                     }
 
-                    try {
-                        await channel.send(message);
-                    } catch (err) {
-                        console.error('Error sending message to Discord:', err);
-                    }
+
                 } else if (data.attribute_type === 'capacity') {
                     const message = [
                         `${EMOJIS.SYSTEM.GRID} Capacity Change`,
@@ -646,6 +658,7 @@ class NATSService {
                     }
                 }
             } else if (data.subject?.startsWith('structs.planet.')) {
+                let message;
 
                 /*         -- Planet Activity
                 'raid_status',
@@ -686,7 +699,7 @@ class NATSService {
                         [data.planet_id]
                     );
 
-                    const message = [
+                     message = [
                         `${EMOJIS.SYSTEM.PLANET} `,
                         `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
                         `Struct Build Initiated ${data.planet_id || 'N/A'}`,
@@ -700,7 +713,7 @@ class NATSService {
                         [data.planet_id]
                     );
 
-                    const message = [
+                     message = [
                         `${EMOJIS.SYSTEM.PLANET} `,
                         `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
                         `Mining Initiated ${data.planet_id || 'N/A'}`,
@@ -714,7 +727,7 @@ class NATSService {
                         [data.planet_id]
                     );
 
-                    const message = [
+                     message = [
                         `${EMOJIS.SYSTEM.PLANET} `,
                         `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
                         `Refinement Initiated ${data.planet_id || 'N/A'}`,
@@ -722,7 +735,7 @@ class NATSService {
                         `At ${data.details.block}`
                     ].join(' ');
                 } else {
-                    const message = [
+                     message = [
                         `${EMOJIS.SYSTEM.PLANET}`,
                         `**Planet ID:** ${data.planet_id || 'N/A'}`,
                         `**Category:** ${data.category || 'N/A'}`
