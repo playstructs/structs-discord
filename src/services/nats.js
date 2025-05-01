@@ -377,7 +377,8 @@ class NATSService {
                     try {
                         await channel.send(message);
                     } catch (err) {
-                    
+                        console.error('Error sending message to Discord:', err);
+                    }
                 }
 
             } else if (data.subject?.startsWith('structs.guild.')) {

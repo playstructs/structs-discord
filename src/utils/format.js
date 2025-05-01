@@ -36,7 +36,7 @@ async function formatUnit(amount, denom, guildMeta = null) {
             }
         })();
 
-        formatAmount = EMOJIS.CURRENCY.ALPHA + (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
+        formatAmount = `${EMOJIS.CURRENCY.ALPHA} ${(amount / Math.pow(10, formatExp)).toFixed(2)}${formatPostfix}`;
     } else if (denom.startsWith('uguild')) {
         currentLength = Math.floor(amount).toString().length;
 
@@ -54,7 +54,7 @@ async function formatUnit(amount, denom, guildMeta = null) {
             return formatTokenSmall || denom;
         })();
 
-        formatAmount = (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
+        formatAmount = `${(amount / Math.pow(10, formatExp)).toFixed(2)}${formatPostfix}`;
     } else if (denom === 'milliwatt') {
         currentLength = Math.floor(amount).toString().length;
 
@@ -77,7 +77,7 @@ async function formatUnit(amount, denom, guildMeta = null) {
             }
         })();
 
-        formatAmount = EMOJIS.CURRENCY.ENERGY + (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
+        formatAmount = `${EMOJIS.CURRENCY.ENERGY} ${(amount / Math.pow(10, formatExp)).toFixed(2)}${formatPostfix}`;
     } else if (denom === 'ore') {
         currentLength = Math.floor(amount).toString().length;
 
@@ -96,7 +96,7 @@ async function formatUnit(amount, denom, guildMeta = null) {
             }
         })();
 
-        formatAmount = EMOJIS.CURRENCY.ORE + (amount / Math.pow(10, formatExp)).toFixed(2) + formatPostfix;
+        formatAmount = `${EMOJIS.CURRENCY.ORE} ${(amount / Math.pow(10, formatExp)).toFixed(2)}${formatPostfix}`;
     }
 
     return formatAmount;
