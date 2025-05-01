@@ -221,7 +221,7 @@ class NATSService {
                     `**End Block:** ${data.end_block?.toString() || 'N/A'}`,
                     `**Creator:** ${data.creator || 'N/A'}`,
                     `**Owner:** ${data.owner || 'N/A'}`
-                ].join('\n');
+                ].join(' ');
 
                 try {
                     await channel.send(message);
@@ -235,7 +235,7 @@ class NATSService {
                     `**Object ID:** ${data.object_id || 'N/A'}`,
                     `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
                     `**Value:** ${data.val?.toString() || 'N/A'}`
-                ].join('\n');
+                ].join(' ');
 
                 try {
                     await channel.send(message);
@@ -254,7 +254,7 @@ class NATSService {
                             `**Join Infusion Min:** ${data.join_infusion_minimum_p?.toString() || 'N/A'}`,
                             `**Primary Reactor:** ${data.primary_reactor_id || 'N/A'}`,
                             `**Entry Substation:** ${data.entry_substation_id || 'N/A'}`
-                        ].join('\n');
+                        ].join(' ');
                         break;
                     case 'guild_meta':
                         message = [
@@ -265,7 +265,7 @@ class NATSService {
                             `**Status:** ${data.status || 'N/A'}`,
                             `**Domain:** ${data.domain || 'N/A'}`,
                             `**Website:** ${data.website || 'N/A'}`
-                        ].join('\n');
+                        ].join(' ');
                         break;
                     case 'guild_membership':
                         message = [
@@ -276,7 +276,7 @@ class NATSService {
                             `**Status:** ${data.status || 'N/A'}`,
                             `**Proposer:** ${data.proposer || 'N/A'}`,
                             `**Substation:** ${data.substation_id || 'N/A'}`
-                        ].join('\n');
+                        ].join(' ');
                         break;
                     default:
                         message = [
@@ -284,7 +284,7 @@ class NATSService {
                             `**Guild ID:** ${data.guild_id || 'N/A'}`,
                             `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
                             `**Value:** ${data.val?.toString() || 'N/A'}`
-                        ].join('\n');
+                        ].join(' ');
                 }
 
                 try {
@@ -328,6 +328,174 @@ class NATSService {
                     } catch (err) {
                         console.error('Error sending message to Discord:', err);
                     }
+                } else if (data.category === 'infused') {
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const player_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.guild_id]
+                    );
+
+                    const reactor_id = data.object_id.split('-')[0] + '-' + data.object_id.split('-')[1]; // Extract "3-29" from "3-29-structs1p4kydpytjzxdq0wvnwu95mwuet3rssj03arj7x"
+
+                    const message = [
+                        `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                        `infused **${await formatUnit(data.amount_p, data.denom)}**`,
+                        `into **${reactor_id}**`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.category === 'defused') {
+                 
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const player_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.guild_id]
+                    );
+
+                    const reactor_id = data.object_id.split('-')[0] + '-' + data.object_id.split('-')[1]; // Extract "3-29" from "3-29-structs1p4kydpytjzxdq0wvnwu95mwuet3rssj03arj7x"
+
+                    const message = [
+                        `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                        `defused **${await formatUnit(data.amount_p, data.denom)}**`,
+                        `from **${reactor_id}**`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.category === 'mined') {
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const player_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.guild_id]
+                    );
+
+                    const message = [
+                        `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                        `mined **${await formatUnit(data.amount_p, data.denom)}**`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.category === 'refined') {
+                    if (data.direction === 'debit') {
+                        const player_discord_username = await query(
+                            'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                            [data.player_id]
+                        );
+
+                        const player_guild_tag = await query(
+                            'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                            [data.guild_id]
+                        );
+
+                        const message = [
+                            `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                            `refined **${await formatUnit(data.amount_p, data.denom)}**`,
+                            `into **${await formatUnit(data.amount_p*1000000, 'ualpha')}**`
+                        ].join(' ');
+
+                        try {
+                            await channel.send(message);
+                        } catch (err) {
+                            console.error('Error sending message to Discord:', err);
+                        }
+                    }
+                } else if (data.category === 'seized') {
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const player_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.guild_id]
+                    );
+
+                    const counterparty_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.counterparty_player_id]
+                    );
+
+                    const counterparty_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.counterparty_guild_id]
+                    );
+
+                    const message = [
+                        `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                        `seized **${await formatUnit(data.amount_p, data.denom)}**`,
+                        `from **${counterparty_discord_username.rows[0]?.discord_username || data.counterparty_player_id}[${counterparty_guild_tag.rows[0]?.tag}]**`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.category === 'minted') {
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const player_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.guild_id]
+                    );
+
+                    const message = [
+                        `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                        `minted **${await formatUnit(data.amount_p, data.denom)}**`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.category === 'burned') {
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.player_id]
+                    );
+
+                    const player_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.guild_id]
+                    );
+
+                    const message = [
+                        `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                        `burned **${await formatUnit(data.amount_p, data.denom)}**`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
                 }
             } else if (data.subject?.startsWith('structs.planet.')) {
                 const message = [
@@ -341,7 +509,7 @@ class NATSService {
                             `**${key}:** ${typeof value === 'object' ? JSON.stringify(value) : value.toString()}`
                         )
                         : []
-                ).join('\n');
+                ).join(' ');
 
                 try {
                     await channel.send(message);
@@ -362,7 +530,7 @@ class NATSService {
                             `**Substation ID:** ${data.substation_id || 'N/A'}`,
                             `**Planet ID:** ${data.planet_id || 'N/A'}`,
                             `**Fleet ID:** ${data.fleet_id || 'N/A'}`
-                        ].join('\n');
+                        ].join(' ');
                         break;
                     case 'player_meta':
                         message = [
@@ -371,7 +539,7 @@ class NATSService {
                             `**Guild ID:** ${data.guild_id || 'N/A'}`,
                             `**Username:** ${data.username || 'N/A'}`,
                             `**Status:** ${data.status || 'N/A'}`
-                        ].join('\n');
+                        ].join(' ');
                         break;
                     default:
                         message = [
@@ -379,7 +547,7 @@ class NATSService {
                             `**Player ID:** ${data.player_id || 'N/A'}`,
                             `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
                             `**Value:** ${data.val?.toString() || 'N/A'}`
-                        ].join('\n');
+                        ].join(' ');
                 }
 
                 try {
@@ -403,7 +571,7 @@ class NATSService {
                     `**Consumer Cancel Penalty:** ${data.consumer_cancellation_penalty?.toString() || 'N/A'}`,
                     `**Creator:** ${data.creator || 'N/A'}`,
                     `**Owner:** ${data.owner || 'N/A'}`
-                ].join('\n');
+                ].join(' ');
 
                 try {
                     await channel.send(message);
@@ -414,7 +582,7 @@ class NATSService {
                 const message = [
                     `${EMOJIS.STATUS.INFO} **Block Update**`,
                     `**Height:** ${data.height?.toString() || 'N/A'}`
-                ].join('\n');
+                ].join(' ');
 
                 try {
                     await channel.send(message);
