@@ -295,44 +295,32 @@ class NATSService {
             } else if (data.subject?.startsWith('structs.inventory.')) {
                 //CREATE TYPE structs.ledger_action AS ENUM ('genesis','received','sent','migrated','infused','defused','mined','refined','seized','forfeited','minted','burned');
                 if (data.category === 'received') {
-                    const player_discord_username = await query(
-                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
-                        [data.player_id]
-                    );
-
-                    const counterparty_discord_username = await query(
-                        'SELECT discord_username FROM structs.player_discord WHERE player_id = (SELECT player_id FROM structs.player_address WHERE address = $1)',
-                        [data.counterparty]
-                    );
-
-                    const message = [
-                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0]?.discord_username || data.player_id}**`,
-                        `received **${formatUnit(data.amount_p, data.denom)}**`,
-                        `from **${counterparty_discord_username.rows[0]?.discord_username || data.counterparty}**`,
-                        `(**Block Height:** ${data.block_height?.toString() || 'N/A'})`
-                    ].join(' ');
-
-                    try {
-                        await channel.send(message);
-                    } catch (err) {
-                        console.error('Error sending message to Discord:', err);
-                    }
+                    // Ignore this one and only process Sent
                 } else if (data.category === 'sent') {
                     const player_discord_username = await query(
                         'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
                         [data.player_id]
                     );
 
+                    const player_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.guild_id]
+                    );
+
                     const counterparty_discord_username = await query(
-                        'SELECT discord_username FROM structs.player_discord WHERE player_id = (SELECT player_id FROM structs.player_address WHERE address = $1)',
-                        [data.counterparty]
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.counterparty_player_id]
+                    );
+
+                    const counterparty_guild_tag = await query(
+                        'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                        [data.counterparty_guild_id]
                     );
 
                     const message = [
-                        `${EMOJIS.STATUS.INFO} **${player_discord_username.rows[0]?.discord_username || data.player_id}**`,
-                        `sent **${formatUnit(data.amount_p, data.denom)}**`,
-                        `to **${counterparty_discord_username.rows[0]?.discord_username || data.counterparty}**`,
-                        `(**Block Height:** ${data.block_height?.toString() || 'N/A'})`
+                        `**${player_discord_username.rows[0]?.discord_username || data.player_id}[${player_guild_tag.rows[0]?.tag}]**`,
+                        `sent **${await formatUnit(data.amount_p, data.denom)}**`,
+                        `to **${counterparty_discord_username.rows[0]?.discord_username || data.counterparty_player_id}[${counterparty_guild_tag.rows[0]?.tag}]**`
                     ].join(' ');
 
                     try {
