@@ -26,7 +26,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const providerId = interaction.options.getString('offer');

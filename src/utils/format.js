@@ -1,4 +1,5 @@
 const { EMOJIS } = require('../constants/emojis');
+const { query } = require('../database');
 
 /**
  * Formats an amount with its appropriate unit based on the denomination
@@ -7,7 +8,7 @@ const { EMOJIS } = require('../constants/emojis');
  * @param {Object} [guildMeta] - Optional guild metadata for guild token formatting
  * @returns {string} Formatted amount with unit
  */
-function formatUnit(amount, denom, guildMeta = null) {
+async function formatUnit(amount, denom, guildMeta = null) {
     let formatAmount;
     let formatExp;
     let formatPostfix;
@@ -40,8 +41,9 @@ function formatUnit(amount, denom, guildMeta = null) {
         currentLength = Math.floor(amount).toString().length;
 
         const guildId = denom.replace('uguild.', '');
-        const formatTokenSmall = guildMeta?.denom?.['0'] || null;
-        const formatTokenBig = guildMeta?.denom?.['6'] || null;
+        const guildMeta = await query("SELECT guild_meta.denom->>'0' as small_denom, guild_meta.denom->>'6' as big_denom FROM structs.guild_meta WHERE id = $1", [guildId]);
+        const formatTokenSmall = guildMeta.rows[0]?.small_denom || null;
+        const formatTokenBig = guildMeta.rows[0]?.big_denom || null;
 
         formatExp = currentLength >= 6 ? 6 : 0;  // 6 for guild., 0 for uguild.
 

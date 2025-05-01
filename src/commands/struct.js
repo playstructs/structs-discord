@@ -729,8 +729,25 @@ module.exports = {
                     [playerId, parseInt(structType), ambit, slot]
                 );
             } else if (subcommand === 'build') {
+                
                 const structId = interaction.options.getString('struct');
+
+                const playerResult = await db.query(
+                    "select struct_attribute.val as build_start_block from struct_attribute where attribute_type = 'blockStartBuild' and object_id = $1",
+                    [structId]
+                );
+                
                 const nonce = interaction.options.getInteger('nonce');
+                const buildStartBlock = playerResult.rows[0].build_start_block;
+
+                // performingStructure.Id + "BUILD" + buildStartBlockString + "NONCE" + strconv.Itoa(i)
+                const proofBase = structId + "BUILD" + buildStartBlock.toString() + "NONCE" + nonce.toString();
+
+                // Generate SHA-256 hash of the nonce
+                const proof = crypto.createHash('sha256')
+                    .update(proofBase)
+                    .digest('hex');
+
 
                 const embed = new EmbedBuilder()
                     .setTitle('Structure Build Submitted')
@@ -738,15 +755,13 @@ module.exports = {
                     .setDescription('Your structure build request has been submitted for processing.')
                     .addFields(
                         { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true }
+                        { name: 'Nonce', value: nonce.toString(), inline: true },
+                        { name: 'Proof', value: proof, inline: true },
+                        { name: 'Build Start Block', value: buildStartBlock.toString(), inline: true },
+                        { name: 'Proof Base', value: proofBase, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
-
-                // Generate SHA-256 hash of the nonce
-                const proof = crypto.createHash('sha256')
-                    .update(nonce.toString())
-                    .digest('hex');
 
                 // Execute the structure build completion transaction
                 await db.query(
@@ -793,21 +808,34 @@ module.exports = {
                 const structId = interaction.options.getString('struct');
                 const nonce = interaction.options.getInteger('nonce');
 
+
+                const playerResult = await db.query(
+                    "select struct_attribute.val as mine_start_block from struct_attribute where attribute_type = 'blockStartOreMine' and object_id = $1",
+                    [structId]
+                );
+
+                const mineStartBlock = playerResult.rows[0].mine_start_block;
+
+                const proofBase = structId + "MINE" + mineStartBlock.toString() + "NONCE" + nonce.toString(); 
+
+                // Generate SHA-256 hash of the nonce
+                const proof = crypto.createHash('sha256')
+                    .update(proofBase)
+                    .digest('hex');
+
                 const embed = new EmbedBuilder()
                     .setTitle('Mining Request Submitted')
                     .setColor('#00ff00')
                     .setDescription('Your mining request has been submitted for processing.')
                     .addFields(
                         { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true }
+                        { name: 'Nonce', value: nonce.toString(), inline: true },
+                        { name: 'Proof', value: proof, inline: true },
+                        { name: 'Mine Start Block', value: mineStartBlock.toString(), inline: true },
+                        { name: 'Proof Base', value: proofBase, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
-
-                // Generate SHA-256 hash of the nonce
-                const proof = crypto.createHash('sha256')
-                    .update(nonce.toString())
-                    .digest('hex');
 
                 // Execute the structure mining transaction
                 await db.query(
@@ -818,21 +846,33 @@ module.exports = {
                 const structId = interaction.options.getString('struct');
                 const nonce = interaction.options.getInteger('nonce');
 
+                const playerResult = await db.query(
+                    "select struct_attribute.val as refine_start_block from struct_attribute where attribute_type = 'blockStartOreRefine' and object_id = $1",
+                    [structId]
+                );
+
+                const refineStartBlock = playerResult.rows[0].refine_start_block;
+
+                const proofBase = structId + "REFINE" + refineStartBlock.toString() + "NONCE" + nonce.toString(); 
+
+                // Generate SHA-256 hash of the nonce
+                const proof = crypto.createHash('sha256')
+                    .update(proofBase)
+                    .digest('hex');
+
                 const embed = new EmbedBuilder()
                     .setTitle('Refining Request Submitted')
                     .setColor('#00ff00')
                     .setDescription('Your refining request has been submitted for processing.')
                     .addFields(
                         { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true }
+                        { name: 'Nonce', value: nonce.toString(), inline: true },
+                        { name: 'Proof', value: proof, inline: true },
+                        { name: 'Refine Start Block', value: refineStartBlock.toString(), inline: true },
+                        { name: 'Proof Base', value: proofBase, inline: true }
                     );
 
                 await interaction.editReply({ embeds: [embed] });
-
-                // Generate SHA-256 hash of the nonce
-                const proof = crypto.createHash('sha256')
-                    .update(nonce.toString())
-                    .digest('hex');
 
                 // Execute the structure refining transaction
                 await db.query(
