@@ -77,7 +77,7 @@ module.exports = {
                         .addChoices(
                             { name: 'Rate', value: 'rate_amount' },
                             { name: 'Player Count', value: 'player_count' },
-                            { name: 'Provider Penalty', value: 'provider_cancelleation_penalty' },
+                            { name: 'Provider Penalty', value: 'provider_cancellation_penalty' },
                             { name: 'Consumer Penalty', value: 'consumer_cancellation_pentalty' }
                         )
                 )),
@@ -301,19 +301,19 @@ async function createOffersLeaderboard(orderBy) {
     let orderClause;
     switch (orderBy) {
         case 'rate_amount':
-            orderClause = 'ORDER BY rate_amount ASC, player_count DESC, provider_cancelleation_penalty DESC, consumer_cancellation_pentalty ASC';
+            orderClause = 'ORDER BY rate_amount ASC, player_count DESC, provider_cancellation_penalty DESC, consumer_cancellation_pentalty ASC';
             break;
         case 'player_count':
-            orderClause = 'ORDER BY player_count DESC, rate_amount ASC, provider_cancelleation_penalty DESC, consumer_cancellation_pentalty ASC';
+            orderClause = 'ORDER BY player_count DESC, rate_amount ASC, provider_cancellation_penalty DESC, consumer_cancellation_pentalty ASC';
             break;
-        case 'provider_cancelleation_penalty':
-            orderClause = 'ORDER BY provider_cancelleation_penalty DESC, player_count DESC, rate_amount ASC, consumer_cancellation_pentalty ASC';
+        case 'provider_cancellation_penalty':
+            orderClause = 'ORDER BY provider_cancellation_penalty DESC, player_count DESC, rate_amount ASC, consumer_cancellation_pentalty ASC';
             break;
         case 'consumer_cancellation_pentalty':
-            orderClause = 'ORDER BY consumer_cancellation_pentalty ASC, player_count DESC, rate_amount ASC, provider_cancelleation_penalty DESC';
+            orderClause = 'ORDER BY consumer_cancellation_pentalty ASC, player_count DESC, rate_amount ASC, provider_cancellation_penalty DESC';
             break;
         default:
-            orderClause = 'ORDER BY rate_amount ASC, player_count DESC, provider_cancelleation_penalty DESC, consumer_cancellation_pentalty ASC';
+            orderClause = 'ORDER BY rate_amount ASC, player_count DESC, provider_cancellation_penalty DESC, consumer_cancellation_pentalty ASC';
     }
 
     const result = await db.query(
