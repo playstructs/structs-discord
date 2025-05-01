@@ -61,7 +61,8 @@ const EMOJIS = {
         MEMBER_DIRECTORY: '<:SystemMemberDirectory:1184988949299601428>',
         PLANET: '<:SystemPlanet:1184989018853740614>',
         GUILD_DIRECTORY: '<:SystemGuildDirectory:1184988944232894464>',
-        GRID: '<:energy:903035734422872084>'
+        GRID: '<:energy:903035734422872084>',
+        GUILD: '<:GuildWorld:1009129120321511504>'
     }
 };
 

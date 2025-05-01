@@ -399,12 +399,15 @@ class NATSService {
 
             } else if (data.subject?.startsWith('structs.guild.')) {
                 let message;
+                const guild_details = await query(
+                    'SELECT name, tag FROM structs.guild_meta WHERE id = $1',
+                    [data.id]
+                );
                 switch (data.category) {
                     case 'guild_consensus':
                         message = [
-                            `${EMOJIS.STATUS.INFO} **Guild Consensus Update**`,
-                            `**Guild ID:** ${data.id || 'N/A'}`,
-                            `**Index:** ${data.index?.toString() || 'N/A'}`,
+                            `${EMOJIS.SYSTEM.GUILD}`,
+                            `${guild_details.rows[0]?.name}[${guild_details.rows[0]?.tag}](${data.id})`,
                             `**Endpoint:** ${data.endpoint || 'N/A'}`,
                             `**Join Infusion Min:** ${data.join_infusion_minimum_p?.toString() || 'N/A'}`,
                             `**Primary Reactor:** ${data.primary_reactor_id || 'N/A'}`,
@@ -413,7 +416,7 @@ class NATSService {
                         break;
                     case 'guild_meta':
                         message = [
-                            `${EMOJIS.STATUS.INFO} **Guild Meta Update**`,
+                            `${EMOJIS.SYSTEM.GUILD}`,
                             `**Guild ID:** ${data.id || 'N/A'}`,
                             `**Name:** ${data.name || 'N/A'}`,
                             `**Tag:** ${data.tag || 'N/A'}`,
@@ -423,19 +426,30 @@ class NATSService {
                         ].join(' ');
                         break;
                     case 'guild_membership':
+
+                        const player_discord_username = await query(
+                            'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                            [data.player_id]
+                        );
+
+                        const proposer_discord_username = await query(
+                            'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                            [data.proposer]
+                        );
+
                         message = [
-                            `${EMOJIS.STATUS.INFO} **Guild Membership Update**`,
-                            `**Guild ID:** ${data.guild_id || 'N/A'}`,
-                            `**Player ID:** ${data.player_id || 'N/A'}`,
+                            `${EMOJIS.SYSTEM.GUILD}`,
+                            `${guild_details.rows[0]?.name}[${guild_details.rows[0]?.tag}](${data.id})`,
+                            `Membership Application for ${player_discord_username.rows[0]?.discord_username || data.player_id}`,
                             `**Join Type:** ${data.join_type || 'N/A'}`,
                             `**Status:** ${data.status || 'N/A'}`,
-                            `**Proposer:** ${data.proposer || 'N/A'}`,
+                            `**Proposer:** ${proposer_discord_username.rows[0]?.discord_username || data.proposer}`,
                             `**Substation:** ${data.substation_id || 'N/A'}`
                         ].join(' ');
                         break;
                     default:
                         message = [
-                            `${EMOJIS.STATUS.INFO} **Guild Update**`,
+                            `${EMOJIS.SYSTEM.GUILD} **Guild Update**`,
                             `**Guild ID:** ${data.guild_id || 'N/A'}`,
                             `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
                             `**Value:** ${data.val?.toString() || 'N/A'}`
