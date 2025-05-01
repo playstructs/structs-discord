@@ -169,7 +169,7 @@ module.exports = {
     },
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const substation = interaction.options.getString('substation');
