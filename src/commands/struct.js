@@ -737,11 +737,11 @@ module.exports = {
                     [structId]
                 );
                 
-                const nonce = interaction.options.getInteger('nonce');
+                const nonce = interaction.options.getString('nonce');
                 const buildStartBlock = playerResult.rows[0].build_start_block;
 
                 // performingStructure.Id + "BUILD" + buildStartBlockString + "NONCE" + strconv.Itoa(i)
-                const proofBase = structId + "BUILD" + buildStartBlock.toString() + "NONCE" + nonce.toString();
+                const proofBase = structId + "BUILD" + buildStartBlock.toString() + "NONCE" + nonce;
 
                 // Generate SHA-256 hash of the nonce
                 const proof = crypto.createHash('sha256')
@@ -806,7 +806,7 @@ module.exports = {
                 );
             } else if (subcommand === 'mine') {
                 const structId = interaction.options.getString('struct');
-                const nonce = interaction.options.getInteger('nonce');
+                const nonce = interaction.options.getString('nonce');
 
 
                 const playerResult = await db.query(
@@ -816,7 +816,7 @@ module.exports = {
 
                 const mineStartBlock = playerResult.rows[0].mine_start_block;
 
-                const proofBase = structId + "MINE" + mineStartBlock.toString() + "NONCE" + nonce.toString(); 
+                const proofBase = structId + "MINE" + mineStartBlock.toString() + "NONCE" + nonce; 
 
                 // Generate SHA-256 hash of the nonce
                 const proof = crypto.createHash('sha256')
@@ -844,7 +844,7 @@ module.exports = {
                 );
             } else if (subcommand === 'refine') {
                 const structId = interaction.options.getString('struct');
-                const nonce = interaction.options.getInteger('nonce');
+                const nonce = interaction.options.getString('nonce');
 
                 const playerResult = await db.query(
                     "select struct_attribute.val as refine_start_block from struct_attribute where attribute_type = 'blockStartOreRefine' and object_id = $1",
@@ -853,7 +853,7 @@ module.exports = {
 
                 const refineStartBlock = playerResult.rows[0].refine_start_block;
 
-                const proofBase = structId + "REFINE" + refineStartBlock.toString() + "NONCE" + nonce.toString(); 
+                const proofBase = structId + "REFINE" + refineStartBlock.toString() + "NONCE" + nonce; 
 
                 // Generate SHA-256 hash of the nonce
                 const proof = crypto.createHash('sha256')

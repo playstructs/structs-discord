@@ -33,14 +33,14 @@ module.exports = {
             const fleetId = playerResult.rows[0].fleet_id;
             const planetId = playerResult.rows[0].planet_id;
             const activeRaidBlock = playerResult.rows[0].active_raid_block;
-            const nonce = interaction.options.getInteger('nonce');
+            const nonce = interaction.options.getString('nonce');
 
             if (activeRaidBlock === 0) {
                 return await interaction.editReply('The fleet is not currently raiding a planet!');
             }
 
             // performingFleet.Id + "@" + planet.Id + "RAID" + activeRaidBlockString + "NONCE" + strconv.Itoa(i)
-            const proofBase = fleetId + "@" + planetId + "RAID" + activeRaidBlock.toString() + "NONCE" + nonce.toString();
+            const proofBase = fleetId + "@" + planetId + "RAID" + activeRaidBlock.toString() + "NONCE" + nonce;
             // Generate SHA-256 hash of the nonce
             const proof = crypto.createHash('sha256')
                 .update(proofBase)
