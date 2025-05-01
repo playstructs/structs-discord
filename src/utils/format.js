@@ -1,4 +1,5 @@
 const { EMOJIS } = require('../constants/emojis');
+const { query } = require('../database');
 
 /**
  * Formats an amount with its appropriate unit based on the denomination
