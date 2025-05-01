@@ -213,14 +213,17 @@ class NATSService {
 
             // Format message based on category and subject
             if (data.category === 'agreement') {
+                const discord_username = await query(
+                    'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                    [data.owner]
+                );
+
                 const message = [
-                    `${EMOJIS.STATUS.INFO} **Agreement Update**`,
-                    `**Allocation ID:** ${data.allocation_id || 'N/A'}`,
-                    `**Capacity:** ${data.capacity?.toString() || 'N/A'}`,
-                    `**Start Block:** ${data.start_block?.toString() || 'N/A'}`,
-                    `**End Block:** ${data.end_block?.toString() || 'N/A'}`,
-                    `**Creator:** ${data.creator || 'N/A'}`,
-                    `**Owner:** ${data.owner || 'N/A'}`
+                    `${EMOJIS.SYSTEM.GRID} ${discord_username.rows[0]?.discord_username || data.owner} Set Agreement ${data.agreement_id}`,
+                    `(Allocation ID: ${data.allocation_id})`,
+                    `with Provider ${data.provider_id}`,
+                    `of ${await formatUnit(data.capacity, 'milliwatt')}`,
+                    `for blocks${data.start_block?.toString()} to ${data.end_block?.toString()}`
                 ].join(' ');
 
                 try {
@@ -281,8 +284,9 @@ class NATSService {
 
 
                 } else if (data.attribute_type === 'fuel') {
+                    let message;
                     if (data.object_type === 'struct') {
-                        const message = [
+                         message = [
                             `${EMOJIS.SYSTEM.GRID} ${await formatUnit(data.value_old,'ore')} fuel`,
                             `added to Generating Struct ${data.object_id}`
                         ].join(' ');
@@ -292,19 +296,19 @@ class NATSService {
                             console.error('Error sending message to Discord:', err);
                         }
                     } else {
-                        const message = [
+                         message = [
                             `${EMOJIS.SYSTEM.GRID} Reactor Fuel Change`,
                             `${await formatUnit(data.value_old,'ore')}`,
                             `to`,
                             `${await formatUnit(data.value,'ore')}`
                         ].join(' ');
-                        try {
-                            await channel.send(message);
-                        } catch (err) {
-                            console.error('Error sending message to Discord:', err);
-                        }
-                    }
 
+                    }
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
 
                 } else if (data.attribute_type === 'capacity') {
                     const message = [
@@ -757,21 +761,27 @@ class NATSService {
                 let message;
                 switch (data.category) {
                     case 'player_consensus':
+                        const discord_username = await query(
+                            'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                            [data.id]
+                        );
+
+                        const guild_details = await query(
+                            'SELECT tag FROM structs.guild_meta WHERE id = $1',
+                            [data.guild_id]
+                        );
+
                         message = [
-                            `${EMOJIS.STATUS.INFO} **Player Consensus Update**`,
-                            `**Player ID:** ${data.id || 'N/A'}`,
-                            `**Index:** ${data.index?.toString() || 'N/A'}`,
-                            `**Creator:** ${data.creator || 'N/A'}`,
-                            `**Primary Address:** ${data.primary_address || 'N/A'}`,
-                            `**Guild ID:** ${data.guild_id || 'N/A'}`,
-                            `**Substation ID:** ${data.substation_id || 'N/A'}`,
-                            `**Planet ID:** ${data.planet_id || 'N/A'}`,
-                            `**Fleet ID:** ${data.fleet_id || 'N/A'}`
+                            `${EMOJIS.SYSTEM.MEMBER_DIRECTORY}`,
+                            `${discord_username.rows[0]?.discord_username || data.id}[${guild_details.rows[0]?.tag}]`,
+                            `${EMOJIS.SYSTEM.GRID}:${data.substation_id || 'N/A'}`,
+                            `${EMOJIS.SYSTEM.PLANET}:${data.planet_id || 'N/A'}`,
+                            `${EMOJIS.SYSTEM.FLEET}:${data.fleet_id || 'N/A'}`
                         ].join(' ');
                         break;
                     case 'player_meta':
                         message = [
-                            `${EMOJIS.STATUS.INFO} **Player Meta Update**`,
+                            `${EMOJIS.SYSTEM.MEMBER_DIRECTORY} **Player Meta Update**`,
                             `**Player ID:** ${data.id || 'N/A'}`,
                             `**Guild ID:** ${data.guild_id || 'N/A'}`,
                             `**Username:** ${data.username || 'N/A'}`,
@@ -796,7 +806,6 @@ class NATSService {
                 const message = [
                     `${EMOJIS.STATUS.INFO} **Provider Update**`,
                     `**Provider ID:** ${data.id || 'N/A'}`,
-                    `**Index:** ${data.index?.toString() || 'N/A'}`,
                     `**Substation ID:** ${data.substation_id || 'N/A'}`,
                     `**Rate:** ${data.rate_amount?.toString() || 'N/A'} ${data.rate_denom || ''}`,
                     `**Access Policy:** ${data.access_policy || 'N/A'}`,
@@ -806,7 +815,6 @@ class NATSService {
                     `**Duration Max:** ${data.duration_maximum?.toString() || 'N/A'}`,
                     `**Provider Cancel Penalty:** ${data.provider_cancellation_penalty?.toString() || 'N/A'}`,
                     `**Consumer Cancel Penalty:** ${data.consumer_cancellation_penalty?.toString() || 'N/A'}`,
-                    `**Creator:** ${data.creator || 'N/A'}`,
                     `**Owner:** ${data.owner || 'N/A'}`
                 ].join(' ');
 
