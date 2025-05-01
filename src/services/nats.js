@@ -229,19 +229,157 @@ class NATSService {
                     console.error('Error sending message to Discord:', err);
                 }
             } else if (data.subject?.startsWith('structs.grid.')) {
-                const message = [
-                    `${EMOJIS.STATUS.INFO} **Grid Update**`,
-                    `**Object Type:** ${data.object_type || 'N/A'}`,
-                    `**Object ID:** ${data.object_id || 'N/A'}`,
-                    `**Attribute Type:** ${data.attribute_type || 'N/A'}`,
-                    `**Value:** ${data.val?.toString() || 'N/A'}`
-                ].join(' ');
-
-                try {
-                    await channel.send(message);
-                } catch (err) {
-                    console.error('Error sending message to Discord:', err);
+                /* 
+                enum gridAttributeType {
+                    ore                     = 0;
+                    fuel                    = 1;
+                    capacity                = 2;
+                    load                    = 3;
+                    structsLoad             = 4;
+                    power                   = 5;
+                    connectionCapacity      = 6;
+                    connectionCount         = 7;
+                    allocationPointerStart  = 8;
+                    allocationPointerEnd    = 9;
+                    proxyNonce              = 10;
+                    lastAction              = 11;
+                    nonce                   = 12;
+                    ready                   = 13;
+                    checkpointBlock         = 14;
                 }
+                */
+
+                if (data.attribute_type === 'ore') {
+                    if (data.object_type === 'player') {
+                        const player_discord_username = await query(
+                            'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                            [data.object_id]
+                        );
+
+                        const message = [
+                            `${EMOJIS.SYSTEM.GRID}`,
+                            `${player_discord_username.rows[0]?.discord_username || data.object_id}`,
+                            `Ore holding change from ${await formatUnit(data.value_old,'ore')} to ${await formatUnit(data.value,'ore')}`
+                        ].join(' ');
+                    } else {
+                        const message = [
+                            `${EMOJIS.SYSTEM.GRID}`,
+                            `Remaining Ore Detected on Planet ${data.object_id}`,
+                            `${await formatUnit(data.value,'ore')}`
+                        ].join(' ');                    
+                    }
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.attribute_type === 'fuel') {
+                    if (data.object_type === 'struct') {
+                        const message = [
+                            `${EMOJIS.SYSTEM.GRID} ${await formatUnit(data.value_old,'ore')} fuel`,
+                            `added to Generating Struct ${data.object_id}`
+                        ].join(' ');
+                    } else {
+                        const message = [
+                            `${EMOJIS.SYSTEM.GRID} Reactor fuel changed from`,
+                            `${await formatUnit(data.value_old,'ore')}`,
+                            `to`,
+                            `${await formatUnit(data.value,'ore')}`
+                        ].join(' ');
+                    }
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.attribute_type === 'capacity') {
+                    const message = [
+                        `${EMOJIS.SYSTEM.GRID} Capacity change of `,
+                        `${await formatUnit(data.value_old,'milliwatt')}`,
+                        `to ${await formatUnit(data.value,'milliwatt')}`,
+                        `for ${data.object_type} ${data.object_id}`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.attribute_type === 'load') {
+                    const message = [
+                        `${EMOJIS.SYSTEM.GRID} Load change of `,
+                        `${await formatUnit(data.value_old,'milliwatt')}`,
+                        `to ${await formatUnit(data.value,'milliwatt')}`,
+                        `for ${data.object_type} ${data.object_id}`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.attribute_type === 'structsLoad') {
+                    const player_discord_username = await query(
+                        'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
+                        [data.object_id]
+                    );
+
+                    const message = [
+                        `${EMOJIS.SYSTEM.GRID} Structs Load change of `,
+                        `${await formatUnit(data.value_old,'milliwatt')}`,
+                        `to ${await formatUnit(data.value,'milliwatt')}`,
+                        `for ${player_discord_username.rows[0]?.discord_username || data.object_id}`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.attribute_type === 'power') {
+                    const message = [
+                        `${EMOJIS.SYSTEM.GRID} Capacity provided by`,
+                        `Allocation ${data.object_id}`,
+                        `changed from`,
+                        `${await formatUnit(data.value_old,'milliwatt')}`,
+                        `to`,
+                        `${await formatUnit(data.value,'milliwatt')}`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.attribute_type === 'connectionCapacity') {
+                    const message = [
+                        `${EMOJIS.SYSTEM.GRID} Connection Capacity change of `,
+                        `${await formatUnit(data.value_old,'milliwatt')}`,
+                        `to ${await formatUnit(data.value,'milliwatt')}`,
+                        `for Substation ${data.object_id}`  
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                        console.error('Error sending message to Discord:', err);
+                    }
+                } else if (data.attribute_type === 'connectionCount') {
+                    const message = [
+                        `${EMOJIS.SYSTEM.GRID} Connection Count change of `,
+                        `${data.value_old?.toString() || 'N/A'}`,
+                        `to ${data.value?.toString() || 'N/A'}`,
+                        `for Substation ${data.object_id}`
+                    ].join(' ');
+
+                    try {
+                        await channel.send(message);
+                    } catch (err) {
+                    
+                }
+
             } else if (data.subject?.startsWith('structs.guild.')) {
                 let message;
                 switch (data.category) {
@@ -297,6 +435,11 @@ class NATSService {
                 if (data.category === 'received') {
                     // Ignore this one and only process Sent
                 } else if (data.category === 'sent') {
+
+                    if (data.address === 'structs1rwfvu2k78ajl5nljj8hfl79zmm0l96xyqw0tc9') {
+                        return;
+                    }
+
                     const player_discord_username = await query(
                         'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
                         [data.player_id]
@@ -455,6 +598,10 @@ class NATSService {
                         console.error('Error sending message to Discord:', err);
                     }
                 } else if (data.category === 'minted') {
+                    if (data.address === 'structs1rwfvu2k78ajl5nljj8hfl79zmm0l96xyqw0tc9') {
+                        return;
+                    }
+
                     const player_discord_username = await query(
                         'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
                         [data.player_id]
@@ -578,7 +725,7 @@ class NATSService {
                 } catch (err) {
                     console.error('Error sending message to Discord:', err);
                 }
-            } else if (data.subject === 'structs.consensus' && data.category === 'block') {
+            } else if (data.subject === 'consensus' && data.category === 'block') {
                 const message = [
                     `${EMOJIS.STATUS.INFO} **Block Update**`,
                     `**Height:** ${data.height?.toString() || 'N/A'}`

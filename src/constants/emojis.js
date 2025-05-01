@@ -60,7 +60,8 @@ const EMOJIS = {
         FLEET_TERRITORY: '<:TileFleetTerritory:1185073736311910401>',
         MEMBER_DIRECTORY: '<:SystemMemberDirectory:1184988949299601428>',
         PLANET: '<:SystemPlanet:1184989018853740614>',
-        GUILD_DIRECTORY: '<:SystemGuildDirectory:1184988944232894464>'
+        GUILD_DIRECTORY: '<:SystemGuildDirectory:1184988944232894464>',
+        GRID: '<:energy:903035734422872084>'
     }
 };
 
