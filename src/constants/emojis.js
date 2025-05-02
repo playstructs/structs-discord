@@ -38,7 +38,7 @@ const EMOJIS = {
         MINER: '<:StructDrill:1184988623809032282>',
         REFINERY: '<:StructRefinery:1184988704767496242>',
 
-        FLEET: '<:Fleet:1184963886856810526>',
+        FLEET: '<:StatusAttacker:1184988416794963968>',
         PLANETARY: '<:Planetary:1184963888626798683>',
         PLANET: '<:Planetary:1184963888626798683>'
     },
