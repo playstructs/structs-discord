@@ -907,9 +907,9 @@ class NATSService {
                         message = [
                             `${EMOJIS.SYSTEM.MEMBER_DIRECTORY}`,
                             `${discord_username.rows[0]?.discord_username || data.id}[${guild_details.rows[0]?.tag}]`,
-                            `${EMOJIS.SYSTEM.GRID}:${data.substation_id || 'N/A'}`,
-                            `${EMOJIS.SYSTEM.PLANET}:${data.planet_id || 'N/A'}`,
-                            `${EMOJIS.SYSTEM.FLEET}:${data.fleet_id || 'N/A'}`
+                            `Substation:${data.substation_id || 'N/A'}`,
+                            `${EMOJIS.SYSTEM.PLANET}${data.planet_id || 'N/A'}`,
+                            `${EMOJIS.STRUCT.FLEET}${data.fleet_id || 'N/A'}`
                         ].join(' ');
                         break;
                     case 'player_meta':
