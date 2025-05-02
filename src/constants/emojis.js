@@ -39,8 +39,8 @@ const EMOJIS = {
         REFINERY: '<:StructRefinery:1184988704767496242>',
 
         FLEET: '<:StatusAttacker:1184988416794963968>',
-        PLANETARY: '<:Planetary:1184963888626798683>',
-        PLANET: '<:Planetary:1184963888626798683>'
+        PLANETARY: '<:Planetary:1184989018853740614>',
+        PLANET: '<:Planetary:1184989018853740614>'
     },
     STATUS: {
         SUCCESS: '<:SystemSuccess:1184989068547858482>',
