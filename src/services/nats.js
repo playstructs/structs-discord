@@ -356,7 +356,7 @@ class NATSService {
                     }
                 } else if (data.attribute_type === 'power') {
                     const message = [
-                        `${EMOJIS.SYSTEM.GRID} Allocation Capacity by`,
+                        `${EMOJIS.SYSTEM.GRID} Allocation Capacity for`,
                         `${data.object_id}`,
                         `changed from`,
                         `${await formatUnit(data.value_old,'milliwatt')}`,
@@ -722,7 +722,7 @@ class NATSService {
                         `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
                         `Struct Build Initiated ${data.planet_id || 'N/A'}`,
                         `For ${data.struct_id || 'N/A'}`,
-                        `At ${data.details.block}`
+                        `At ${data.detail.block}`
                     ].join(' ');
                     
                 } else if (data.category === 'struct_block_ore_mine_start') {
@@ -736,7 +736,7 @@ class NATSService {
                         `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
                         `Mining Initiated ${data.planet_id || 'N/A'}`,
                         `By ${EMOJIS.STRUCT.MINER} ${data.struct_id || 'N/A'}`,
-                        `At ${data.details.block}`
+                        `At ${data.detail.block}`
                     ].join(' ');
 
                 } else if (data.category === 'struct_block_ore_refine_start') {
@@ -750,7 +750,7 @@ class NATSService {
                         `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
                         `Refinement Initiated ${data.planet_id || 'N/A'}`,
                         `By ${EMOJIS.STRUCT.REFINERY} ${data.struct_id || 'N/A'}`,
-                        `At ${data.details.block}`
+                        `At ${data.detail.block}`
                     ].join(' ');
                 } else {
                      message = [
