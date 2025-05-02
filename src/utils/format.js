@@ -2,6 +2,54 @@ const { EMOJIS } = require('../constants/emojis');
 const { query } = require('../database');
 
 /**
+ * Formats the type of a struct
+ * @param {string} struct_type - Type of the struct
+ * @returns {string} Formatted struct type with emoji
+ */
+function formatStructType(struct_type) {
+    return struct_type ? EMOJIS.STRUCT[struct_type] : '';
+}
+
+/**
+ * Formats the operating ambit of a struct
+ * @param {string} operating_ambit - Operating ambit of the struct
+ * @returns {string} Formatted operating ambit with emoji
+ */
+function formatOperatingAmbit(operating_ambit) {
+    return operating_ambit ? EMOJIS.AMBIT[operating_ambit] : '';
+}
+
+/**
+ * Formats a status message based on active bit flags
+ * @param {number} status - Current status bit flags
+ * @returns {string} Formatted status message
+ */
+function formatStructStatus(status) {
+    const statusFlags = [];
+    
+    // Check each status flag
+    if (status & 1) {
+        statusFlags.push(EMOJIS.STATUS.MATERIALIZED);
+    }
+    if (status & 2) {
+        statusFlags.push(EMOJIS.STATUS.BUILT);
+    }
+    if (status & 4) {
+        statusFlags.push(EMOJIS.STATUS.ONLINE);
+    } else {
+        statusFlags.push(EMOJIS.STATUS.OFFLINE);
+    }
+    if (status & 16) {
+        statusFlags.push(EMOJIS.STATUS.STEALTH);
+    }
+    if (status & 32) {
+        statusFlags.push(EMOJIS.STATUS.DESTROYED);
+    }
+
+    return statusFlags.join(' ');
+}
+
+/**
  * Formats an amount with its appropriate unit based on the denomination
  * @param {number} amount - The amount to format
  * @param {string} denom - The denomination (e.g., 'ualpha', 'uguild.123', 'milliwatt', 'ore')
@@ -102,4 +150,4 @@ async function formatUnit(amount, denom, guildMeta = null) {
     return formatAmount;
 }
 
-module.exports = { formatUnit }; 
+module.exports = { formatUnit, formatStructStatus, formatOperatingAmbit, formatStructType }; 

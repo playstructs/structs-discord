@@ -39,13 +39,20 @@ const EMOJIS = {
         REFINERY: '<:StructRefinery:1184988704767496242>',
 
         FLEET: '<:Fleet:1184963886856810526>',
-        PLANETARY: '<:Planetary:1184963888626798683>'
+        PLANETARY: '<:Planetary:1184963888626798683>',
+        PLANET: '<:Planetary:1184963888626798683>'
     },
     STATUS: {
         SUCCESS: '<:SystemSuccess:1184989068547858482>',
         ERROR: '<:SystemUnkown:1184989072020750356>',
         WARNING: '<:SystemAlert:1184988793221173388>',
-        INFO: '<:SystemInfo:1184988947210829925>'
+        INFO: '<:SystemInfo:1184988947210829925>',
+        MATERIALIZED: '<:TilePlanetaryBeacon:1185073734940377119>',
+        BUILT: '<:ActiveAbilityDeploy:1184940941635751966>',
+        STEALTH: '<:StatusStealth:1184988546814185544> ',
+        DESTROYED: '<:StatusDestroyed:1184988429554044978>',
+        ONLINE: '⏻',
+        OFFLINE: '⏼'
     },
     AMBIT: {
         SPACE: '<:RangeSpace:1184963890233221190>',
@@ -62,7 +69,8 @@ const EMOJIS = {
         PLANET: '<:SystemPlanet:1184989018853740614>',
         GUILD_DIRECTORY: '<:SystemGuildDirectory:1184988944232894464>',
         GRID: '<:energy:903035734422872084>',
-        GUILD: '<:GuildWorld:1009129120321511504>'
+        GUILD: '<:GuildWorld:1009129120321511504>',
+        RAID: '<:SystemRaid:1184989020153983036>'
     }
 };
 

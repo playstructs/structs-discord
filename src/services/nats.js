@@ -2,7 +2,7 @@ const { connect } = require('nats');
 const { query } = require('../database');
 const { EMOJIS } = require('../constants/emojis');
 const { EmbedBuilder } = require('discord.js');
-const { formatUnit } = require('../utils/format');
+const { formatUnit, formatStructStatus, formatStructType, formatOperatingAmbit } = require('../utils/format');
 require('dotenv').config();
 
 class NATSService {
@@ -693,6 +693,11 @@ class NATSService {
                 'struct_block_ore_refine_start',
                 */
 
+                const planet_player_discord_details = await query(
+                    'SELECT discord_username, player.id as player_id, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
+                    [data.planet_id]
+                );
+
                 if (data.category === 'raid_status') {
 
                 } else if (data.category === 'fleet_arrive') {
@@ -709,49 +714,163 @@ class NATSService {
                     
                 } else if (data.category === 'struct_status') {
 
-                } else if (data.category === 'struct_move') {
-
-                } else if (data.category === 'struct_block_build_start') {
-                    const player_discord_details = await query(
-                        'SELECT discord_username, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
-                        [data.planet_id]
+                    const struct_player_discord_details = await query(
+                        `SELECT 
+                            player_discord.discord_username as discord_username, 
+                            struct.owner as player_id, 
+                            guild_meta.tag as guild_tag,
+                            upper(struct.location_type) as location_type,
+                            upper(struct.operating_ambit) as operating_ambit,
+                            struct_type.type as type,
+                            upper(replace(replace(struct_type.type,' ','_'),'-','_')) as emoji_type
+                        FROM 
+                            structs.struct
+                            LEFT JOIN structs.struct_type ON struct_type.id=struct.type
+                            LEFT JOIN structs.player_discord ON player_discord.player_id=struct.owner   
+                            LEFT JOIN structs.player ON player.id=struct.owner 
+                            LEFT JOIN structs.guild_meta ON guild_meta.id=player.guild_id 
+                        WHERE 
+                            struct.id = $1`,
+                        [data.detail.struct_id]
                     );
+
+                    let participants;
+                    if (struct_player_discord_details.rows[0]?.player_id === planet_player_discord_details.rows[0]?.player_id) {
+                        participants = `${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    } else {
+                        participants = `${planet_player_discord_details.rows[0]?.discord_username || planet_player_discord_details.rows[0]?.player_id}[${planet_player_discord_details.rows[0]?.guild_tag}]${EMOJIS.SYSTEM.RAID}${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    }
+ 
+                    message = [
+                        `${EMOJIS.SYSTEM.PLANET} `,
+                        `${participants}`,
+                        `Struct ${data.detail.struct_id} on ${data.planet_id}`,
+                        `${formatStructType(struct_player_discord_details.rows[0]?.location_type)}`,
+                        `${formatOperatingAmbit(struct_player_discord_details.rows[0]?.operating_ambit)}`,
+                        `${formatStructType(struct_player_discord_details.rows[0]?.type)}`,
+                        `${formatStructStatus(data.detail.status)}`
+                    ].join(' ');
+
+
+                } else if (data.category === 'struct_move') {
+ 
+                } else if (data.category === 'struct_block_build_start') {
+
+                    const struct_player_discord_details = await query(
+                        `SELECT 
+                            player_discord.discord_username as discord_username, 
+                            struct.owner as player_id, 
+                            guild_meta.tag as guild_tag,
+                            upper(struct.location_type) as location_type,
+                            upper(struct.operating_ambit) as operating_ambit,
+                            struct_type.type as type,
+                            upper(replace(replace(struct_type.type,' ','_'),'-','_')) as emoji_type
+                        FROM 
+                            structs.struct
+                            LEFT JOIN structs.struct_type ON struct_type.id=struct.type
+                            LEFT JOIN structs.player_discord ON player_discord.player_id=struct.owner   
+                            LEFT JOIN structs.player ON player.id=struct.owner 
+                            LEFT JOIN structs.guild_meta ON guild_meta.id=player.guild_id 
+                        WHERE 
+                            struct.id = $1`,
+                        [data.detail.struct_id]
+                    );
+
+                    let participants;
+                    if (struct_player_discord_details.rows[0]?.player_id === planet_player_discord_details.rows[0]?.player_id) {
+                        participants = `${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    } else {
+                        participants = `${planet_player_discord_details.rows[0]?.discord_username || planet_player_discord_details.rows[0]?.player_id}[${planet_player_discord_details.rows[0]?.guild_tag}]${EMOJIS.SYSTEM.RAID}${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    }
 
                      message = [
                         `${EMOJIS.SYSTEM.PLANET} `,
-                        `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
+                        `${participants}`,
                         `Struct Build Initiated ${data.planet_id || 'N/A'}`,
-                        `For ${data.struct_id || 'N/A'}`,
+                        `For ${data.detail.struct_id || 'N/A'}`,
+                        `${formatStructType(struct_player_discord_details.rows[0]?.location_type)}`,
+                        `${formatOperatingAmbit(struct_player_discord_details.rows[0]?.operating_ambit)}`,
+                        `${formatStructType(struct_player_discord_details.rows[0]?.type)}`,
                         `At ${data.detail.block}`
                     ].join(' ');
                     
                 } else if (data.category === 'struct_block_ore_mine_start') {
-                    const player_discord_details = await query(
-                        'SELECT discord_username, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
-                        [data.planet_id]
+
+                    const struct_player_discord_details = await query(
+                        `SELECT 
+                            player_discord.discord_username as discord_username, 
+                            struct.owner as player_id, 
+                            guild_meta.tag as guild_tag,
+                            upper(struct.location_type) as location_type,
+                            upper(struct.operating_ambit) as operating_ambit,
+                            struct_type.type as type,
+                            upper(replace(replace(struct_type.type,' ','_'),'-','_')) as emoji_type
+                        FROM 
+                            structs.struct
+                            LEFT JOIN structs.struct_type ON struct_type.id=struct.type
+                            LEFT JOIN structs.player_discord ON player_discord.player_id=struct.owner   
+                            LEFT JOIN structs.player ON player.id=struct.owner 
+                            LEFT JOIN structs.guild_meta ON guild_meta.id=player.guild_id 
+                        WHERE 
+                            struct.id = $1`,
+                        [data.detail.struct_id]
                     );
+
+                    let participants;
+                    if (struct_player_discord_details.rows[0]?.player_id === planet_player_discord_details.rows[0]?.player_id) {
+                        participants = `${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    } else {
+                        participants = `${planet_player_discord_details.rows[0]?.discord_username || planet_player_discord_details.rows[0]?.player_id}[${planet_player_discord_details.rows[0]?.guild_tag}]${EMOJIS.SYSTEM.RAID}${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    }
 
                      message = [
                         `${EMOJIS.SYSTEM.PLANET} `,
-                        `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
+                        `${participants}`,
                         `Mining Initiated ${data.planet_id || 'N/A'}`,
-                        `By ${EMOJIS.STRUCT.MINER} ${data.struct_id || 'N/A'}`,
+                        `By ${data.detail.struct_id || 'N/A'}`,
+                        `${formatOperatingAmbit(struct_player_discord_details.rows[0]?.operating_ambit)}`,
+                        `${formatStructType(struct_player_discord_details.rows[0]?.type)}`,
                         `At ${data.detail.block}`
                     ].join(' ');
 
                 } else if (data.category === 'struct_block_ore_refine_start') {
-                    const player_discord_details = await query(
-                        'SELECT discord_username, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
-                        [data.planet_id]
+                    const struct_player_discord_details = await query(
+                        `SELECT 
+                            player_discord.discord_username as discord_username, 
+                            struct.owner as player_id, 
+                            guild_meta.tag as guild_tag,
+                            upper(struct.location_type) as location_type,
+                            upper(struct.operating_ambit) as operating_ambit,
+                            struct_type.type as type,
+                            upper(replace(replace(struct_type.type,' ','_'),'-','_')) as emoji_type
+                        FROM 
+                            structs.struct
+                            LEFT JOIN structs.struct_type ON struct_type.id=struct.type
+                            LEFT JOIN structs.player_discord ON player_discord.player_id=struct.owner   
+                            LEFT JOIN structs.player ON player.id=struct.owner 
+                            LEFT JOIN structs.guild_meta ON guild_meta.id=player.guild_id 
+                        WHERE 
+                            struct.id = $1`,
+                        [data.detail.struct_id]
                     );
 
-                     message = [
+                    let participants;
+                    if (struct_player_discord_details.rows[0]?.player_id === planet_player_discord_details.rows[0]?.player_id) {
+                        participants = `${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    } else {
+                        participants = `${planet_player_discord_details.rows[0]?.discord_username || planet_player_discord_details.rows[0]?.player_id}[${planet_player_discord_details.rows[0]?.guild_tag}]${EMOJIS.SYSTEM.RAID}${struct_player_discord_details.rows[0]?.discord_username || struct_player_discord_details.rows[0]?.player_id}[${struct_player_discord_details.rows[0]?.guild_tag}]`;
+                    }
+
+                    message = [
                         `${EMOJIS.SYSTEM.PLANET} `,
-                        `${player_discord_details.rows[0]?.discord_username || data.player_id}[${player_discord_details.rows[0]?.guild_tag}]`,
-                        `Refinement Initiated ${data.planet_id || 'N/A'}`,
-                        `By ${EMOJIS.STRUCT.REFINERY} ${data.struct_id || 'N/A'}`,
+                        `${participants}`,
+                        `Refining Initiated ${data.planet_id || 'N/A'}`,
+                        `By ${data.detail.struct_id || 'N/A'}`,
+                        `${formatOperatingAmbit(struct_player_discord_details.rows[0]?.operating_ambit)}`,
+                        `${formatStructType(struct_player_discord_details.rows[0]?.type)}`,
                         `At ${data.detail.block}`
                     ].join(' ');
+
                 } else {
                      message = [
                         `${EMOJIS.SYSTEM.PLANET}`,
