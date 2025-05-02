@@ -713,7 +713,7 @@ class NATSService {
 
                 } else if (data.category === 'struct_block_build_start') {
                     const player_discord_details = await query(
-                        'SELECT discord_username, guild.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
+                        'SELECT discord_username, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
                         [data.planet_id]
                     );
 
@@ -727,7 +727,7 @@ class NATSService {
                     
                 } else if (data.category === 'struct_block_ore_mine_start') {
                     const player_discord_details = await query(
-                        'SELECT discord_username, guild.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
+                        'SELECT discord_username, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
                         [data.planet_id]
                     );
 
@@ -741,7 +741,7 @@ class NATSService {
 
                 } else if (data.category === 'struct_block_ore_refine_start') {
                     const player_discord_details = await query(
-                        'SELECT discord_username, guild.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
+                        'SELECT discord_username, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
                         [data.planet_id]
                     );
 
