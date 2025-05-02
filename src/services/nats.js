@@ -693,7 +693,18 @@ class NATSService {
                 'struct_block_ore_refine_start',
                 */
 
-
+                const planet_player_discord_details = await query(
+                    `SELECT 
+                        discord_username, 
+                        player.id as player_id, 
+                        guild_meta.tag as guild_tag 
+                    FROM 
+                        structs.player     
+                        LEFT JOIN structs.player_discord ON player_discord.player_id=player.id
+                        LEFT JOIN structs.guild_meta ON guild_meta.id=player.guild_id 
+                        WHERE player.planet_id = $1`,
+                    [data.planet_id]
+                );
 
                 if (data.category === 'raid_status') {
 
@@ -710,10 +721,6 @@ class NATSService {
                 } else if (data.category === 'struct_defense_add') {
                     
                 } else if (data.category === 'struct_status') {
-                    const planet_player_discord_details = await query(
-                        'SELECT discord_username, player.id as player_id, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
-                        [data.planet_id]
-                    );
 
                     const struct_player_discord_details = await query(
                         `SELECT 
@@ -756,10 +763,7 @@ class NATSService {
                 } else if (data.category === 'struct_move') {
  
                 } else if (data.category === 'struct_block_build_start') {
-                    const planet_player_discord_details = await query(
-                        'SELECT discord_username, player.id as player_id, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
-                        [data.planet_id]
-                    );
+
 
                     const struct_player_discord_details = await query(
                         `SELECT 
@@ -800,10 +804,6 @@ class NATSService {
                     ].join(' ');
                     
                 } else if (data.category === 'struct_block_ore_mine_start') {
-                    const planet_player_discord_details = await query(
-                        'SELECT discord_username, player.id as player_id, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
-                        [data.planet_id]
-                    );
 
                     const struct_player_discord_details = await query(
                         `SELECT 
@@ -843,10 +843,7 @@ class NATSService {
                     ].join(' ');
 
                 } else if (data.category === 'struct_block_ore_refine_start') {
-                    const planet_player_discord_details = await query(
-                        'SELECT discord_username, player.id as player_id, guild_meta.tag as guild_tag FROM structs.player_discord, structs.player, structs.guild_meta WHERE player_discord.player_id = player.id AND player.guild_id = guild_meta.id AND player.planet_id = $1',
-                        [data.planet_id]
-                    );
+
                     const struct_player_discord_details = await query(
                         `SELECT 
                             player_discord.discord_username as discord_username, 
