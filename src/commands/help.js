@@ -57,14 +57,23 @@ module.exports = {
                                '`/struct defense-clear` - Clear defense systems\n' +
                                '`/struct defense-set` - Set struct protection\n' +
                                '`/struct stealth-activate` - Activate stealth systems\n' +
-                               '`/struct stealth-deactivate` - Deactivate stealth systems',
+                               '`/struct stealth-deactivate` - Deactivate stealth systems\n' +
+                               '`/struct status` - Check structure status and operations',
                         inline: false
                     },
                     {
                         name: `${EMOJIS.STRUCT.FLEET} Fleet Commands`,
                         value: '`/fleet deploy` - Deploy fleet to a destination planet\n' +
                                '`/fleet return` - Return fleet to your planet\n' +
+                               '`/fleet status` - Check fleet status and active raids\n' +
                                '`/raid` - Complete a planet raid and steal available Ore',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.STATUS.INFO} Status Commands`,
+                        value: '`/struct status` - Check structure status, operations, and capabilities\n' +
+                               '`/fleet status` - Check fleet location, command ship, and raid status\n' +
+                               '`/operation status` - List all active operations (builds, mining, refining, raids)',
                         inline: false
                     },
                     {

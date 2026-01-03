@@ -1,9 +1,11 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
 const { handleError, createSuccessEmbed, createWarningEmbed } = require('../utils/errors');
 const { getPlayerId, getPlayerIdWithValidation } = require('../utils/player');
 const { formatStructChoice, getStructAttribute } = require('../utils/structs');
+const { getStructStatus } = require('../utils/status');
 const crypto = require('crypto');
 
 /**
@@ -208,6 +210,17 @@ module.exports = {
                 option
                     .setName('struct')
                     .setDescription('Select the structure to deactivate stealth on')
+                    .setRequired(true)
+                    .setAutocomplete(true)
+            ))
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('status')
+            .setDescription('Check the status of a structure')
+            .addStringOption(option =>
+                option
+                    .setName('struct')
+                    .setDescription('Select a structure to check status')
                     .setRequired(true)
                     .setAutocomplete(true)
             )),
@@ -858,6 +871,96 @@ module.exports = {
                         { name: 'Structure ID', value: structId, inline: true }
                     ]
                 );
+
+                await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'status') {
+                const structId = interaction.options.getString('struct');
+
+                const structStatus = await getStructStatus(structId, playerId);
+
+                if (!structStatus) {
+                    return await interaction.editReply({
+                        embeds: [createWarningEmbed(
+                            'Structure Not Found',
+                            'The specified structure was not found or you do not own it.'
+                        )]
+                    });
+                }
+
+                // Get ambit emoji
+                const ambitMap = { 16: 'SPACE', 8: 'AIR', 4: 'LAND', 2: 'WATER' };
+                const ambitKey = ambitMap[structStatus.operating_ambit] || 'SPACE';
+                const ambitEmoji = EMOJIS.AMBIT[ambitKey] || '🌍';
+
+                // Build status embed
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.STRUCT.PLANETARY} Structure Status: ${structStatus.id}`)
+                    .setColor(0x0099ff)
+                    .setDescription(`**${structStatus.type}**`)
+                    .addFields(
+                        { name: '📍 Location', value: structStatus.planet_id || 'N/A', inline: true },
+                        { name: '🌍 Ambit', value: `${ambitEmoji} ${ambitKey}`, inline: true },
+                        { name: '🔢 Slot', value: structStatus.slot?.toString() || 'N/A', inline: true },
+                        { name: '⚡ State', value: structStatus.state, inline: true },
+                        { name: '✅ Built', value: structStatus.isBuilt ? 'Yes' : 'No', inline: true },
+                        { name: '🟢 Active', value: structStatus.isActive ? 'Yes' : 'No', inline: true }
+                    )
+                    .setTimestamp();
+
+                // Add build progress if building
+                if (structStatus.buildProgress) {
+                    embed.addFields({
+                        name: '🏗️ Build Progress',
+                        value: `Started: Block ${structStatus.buildProgress.startBlock}\n` +
+                               `Current: Block ${structStatus.buildProgress.currentBlock || 'N/A'}\n` +
+                               `Elapsed: ${structStatus.buildProgress.blocksElapsed || 'N/A'} blocks`,
+                        inline: false
+                    });
+                }
+
+                // Add mining status if active
+                if (structStatus.miningActive) {
+                    embed.addFields({
+                        name: '⛏️ Mining',
+                        value: `Active | Started: Block ${structStatus.miningActive.startBlock}\n` +
+                               `Elapsed: ${structStatus.miningActive.blocksElapsed || 'N/A'} blocks`,
+                        inline: false
+                    });
+                }
+
+                // Add refining status if active
+                if (structStatus.refiningActive) {
+                    embed.addFields({
+                        name: '🔧 Refining',
+                        value: `Active | Started: Block ${structStatus.refiningActive.startBlock}\n` +
+                               `Elapsed: ${structStatus.refiningActive.blocksElapsed || 'N/A'} blocks`,
+                        inline: false
+                    });
+                }
+
+                // Add defense status if protecting
+                if (structStatus.protected_struct_id) {
+                    embed.addFields({
+                        name: '🛡️ Defense',
+                        value: `Protecting: ${structStatus.protected_struct_id}`,
+                        inline: false
+                    });
+                }
+
+                // Add capabilities
+                const capabilities = [];
+                if (structStatus.capabilities.canMine) capabilities.push('✅ Can Mine');
+                if (structStatus.capabilities.canRefine) capabilities.push('✅ Can Refine');
+                if (structStatus.capabilities.canAttack) capabilities.push('✅ Can Attack');
+                if (structStatus.capabilities.hasStealth) capabilities.push('✅ Has Stealth');
+
+                if (capabilities.length > 0) {
+                    embed.addFields({
+                        name: 'Capabilities',
+                        value: capabilities.join(' | ') || 'None',
+                        inline: false
+                    });
+                }
 
                 await interaction.editReply({ embeds: [embed] });
             }

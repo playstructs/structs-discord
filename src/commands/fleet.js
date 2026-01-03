@@ -1,7 +1,9 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { EMOJIS } = require('../constants/emojis');
 const { handleError, createSuccessEmbed, createWarningEmbed, validatePlayerRegistration } = require('../utils/errors');
+const { getFleetStatus } = require('../utils/status');
 
 /**
  * Fleet management command module
@@ -26,7 +28,11 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('return')
-                .setDescription('Return your fleet to your planet')),
+                .setDescription('Return your fleet to your planet'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('status')
+                .setDescription('Check your fleet status')),
 
     /**
      * Autocomplete handler for fleet command
@@ -183,6 +189,53 @@ module.exports = {
                         { name: 'Destination', value: planetId, inline: true }
                     ]
                 );
+
+                await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'status') {
+                const fleetStatus = await getFleetStatus(playerId);
+
+                if (!fleetStatus) {
+                    return await interaction.editReply({
+                        embeds: [createWarningEmbed(
+                            'No Fleet',
+                            'You do not have a fleet. You need a fleet to check status.'
+                        )]
+                    });
+                }
+
+                const embed = new EmbedBuilder()
+                    .setTitle(`${EMOJIS.STRUCT.FLEET} Fleet Status: ${fleetStatus.fleet_id}`)
+                    .setColor(0x0099ff)
+                    .addFields(
+                        { name: '📍 Location', value: fleetStatus.planet_id || 'N/A', inline: true },
+                        { name: '👤 Owner', value: fleetStatus.owner, inline: true }
+                    )
+                    .setTimestamp();
+
+                if (fleetStatus.commandShip) {
+                    embed.addFields({
+                        name: '🚢 Command Ship',
+                        value: `${fleetStatus.commandShip.id} ${fleetStatus.commandShip.type}`,
+                        inline: false
+                    });
+                }
+
+                if (fleetStatus.raidStatus.isRaiding) {
+                    embed.addFields({
+                        name: '⚔️ Active Raid',
+                        value: `Target: ${fleetStatus.raidStatus.targetPlanet}\n` +
+                               `Started: Block ${fleetStatus.raidStatus.startBlock}\n` +
+                               `Current: Block ${fleetStatus.raidStatus.currentBlock || 'N/A'}\n` +
+                               `Elapsed: ${fleetStatus.raidStatus.blocksElapsed || 'N/A'} blocks`,
+                        inline: false
+                    });
+                } else {
+                    embed.addFields({
+                        name: '⚔️ Raid Status',
+                        value: 'Not raiding',
+                        inline: false
+                    });
+                }
 
                 await interaction.editReply({ embeds: [embed] });
             }
