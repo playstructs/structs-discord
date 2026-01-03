@@ -4,6 +4,7 @@ const { createEmbeds } = require('../embeds/structs');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError, createWarningEmbed } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -92,9 +93,6 @@ module.exports = {
                     });
                 }
             }
-            
-            // Log the choices for debugging
-            console.log(`Autocomplete choices for "${focusedValue}":`, choices);
             
             // Ensure we're responding with valid choices
             if (choices.length > 0) {
@@ -206,10 +204,15 @@ module.exports = {
             }
 
             // If we get here, nothing was found
-            return await interaction.editReply(`${EMOJIS.STATUS.ERROR} No information found for your query. Try a different search term or check the format of your input.`);
+            return await interaction.editReply({
+                embeds: [createWarningEmbed(
+                    'No Results Found',
+                    'No information found for your query. Try a different search term or check the format of your input.'
+                )]
+            });
         } catch (error) {
-            console.error(error);
-            return await interaction.editReply(`${EMOJIS.STATUS.ERROR} There was an error processing your request. Please try again later.`);
+            const { embed } = handleError(error, 'search command', interaction);
+            return await interaction.editReply({ embeds: [embed] });
         }
     }
 };
@@ -285,11 +288,30 @@ async function handleIdLookup(id) {
             break;
 
         case 7: // Infusion
-            return '❌ Infusion lookup not implemented yet.';
+            data = await fetchStructData.infusion(id);
+            if (data.rows && data.rows.length > 0) {
+                embeds = await createEmbeds.infusion(data.rows[0]);
+                return { embeds };
+            }
             break;
 
         case 8: // Address
-            return '❌ Address lookup not implemented yet.';
+            // For address, the ID format is 8-0-addressstring or 8-index-addressstring
+            // Extract the address from the ID format
+            const addressParts = id.split('-');
+            let addressString;
+            if (addressParts.length >= 3) {
+                // Format: 8-index-addressstring, extract everything after the second dash
+                addressString = addressParts.slice(2).join('-');
+            } else {
+                // If it's just an address string, use it directly
+                addressString = id;
+            }
+            data = await fetchStructData.address(addressString);
+            if (data.rows && data.rows.length > 0) {
+                embeds = await createEmbeds.address(data.rows[0]);
+                return { embeds };
+            }
             break;
 
         case 9: // Fleet

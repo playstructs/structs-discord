@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -31,8 +32,12 @@ module.exports = {
                 [interaction.user.id]
             );
 
-            if (playerResult.rows.length === 0) {
-                return await interaction.editReply('Player not found. Please ensure you are registered.');
+            const registrationError = validatePlayerRegistration(
+                playerResult,
+                'Player not found. Please ensure you are registered using `/join`.'
+            );
+            if (registrationError) {
+                return await interaction.editReply({ embeds: [registrationError] });
             }
 
             const playerId = playerResult.rows[0].player_id;
@@ -43,19 +48,19 @@ module.exports = {
                 [playerId, amount, denom]
             );
 
-            const embed = new EmbedBuilder()
-                .setTitle('Guild Bank Redemption')
-                .setColor('#00ff00')
-                .addFields(
+            const embed = createSuccessEmbed(
+                'Guild Bank Redemption',
+                'Redemption completed successfully!',
+                [
                     { name: 'Denomination', value: denom, inline: true },
                     { name: 'Amount', value: amount.toString(), inline: true }
-                )
-                .setDescription('Redemption completed successfully!');
+                ]
+            );
 
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error executing redeem command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            const { embed } = handleError(error, 'redeem command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     },
 

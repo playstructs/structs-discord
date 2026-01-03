@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { execute, autocomplete } = require('../structs');
-const { fetchPlayerData, fetchGuildData, fetchStructData } = require('../../queries/structs');
-const { createEmbeds } = require('../../embeds/structs');
+const structCommand = require('../struct');
+const { execute, autocomplete } = structCommand;
 const db = require('../../database');
 
 // Mock the database and query modules

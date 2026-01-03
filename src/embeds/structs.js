@@ -487,7 +487,84 @@ const createEmbeds = {
 
     async reactor(reactor) {
         return [await createReactorEmbed(reactor)];
+    },
+
+    async infusion(infusion) {
+        return [await createInfusionEmbed(infusion)];
+    },
+
+    async address(address) {
+        return [await createAddressEmbed(address)];
     }
+};
+
+const createInfusionEmbed = async (infusion) => {
+    // Get Discord username for owner if available
+    let ownerDisplay = infusion.owner;
+    if (infusion.owner) {
+        const discordUsername = await getDiscordUsername(infusion.owner);
+        if (discordUsername) {
+            ownerDisplay = `${discordUsername} (${infusion.owner})`;
+        } else {
+            ownerDisplay = infusion.owner;
+        }
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle(`Infusion: ${infusion.id}`)
+        .setColor('#0099ff')
+        .addFields(
+            { name: 'Infusion ID', value: infusion.id, inline: true },
+            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
+            { name: 'Reactor ID', value: infusion.reactor_id || 'N/A', inline: true },
+            { name: 'Reactor Validator', value: infusion.reactor_validator || 'N/A', inline: true },
+            { name: 'Amount', value: infusion.amount || '0', inline: true },
+            { name: 'Denomination', value: infusion.denom || 'N/A', inline: true },
+            { name: 'Start Block', value: infusion.start_block?.toString() || 'N/A', inline: true },
+            { name: 'End Block', value: infusion.end_block?.toString() || 'N/A', inline: true },
+            { name: 'Duration', value: `${infusion.duration || 0} blocks`, inline: true }
+        );
+
+    return embed;
+};
+
+const createAddressEmbed = async (address) => {
+    const embed = new EmbedBuilder()
+        .setTitle(`Address: ${address.address}`)
+        .setColor('#0099ff')
+        .addFields(
+            { name: 'Address', value: address.address, inline: false },
+            { name: 'Player ID', value: address.player_id || 'None', inline: true },
+            { name: 'Username', value: address.username || address.discord_username || 'Unknown', inline: true },
+            { name: 'Guild', value: address.guild_name ? `${address.guild_name} [${address.guild_tag}]` : 'None', inline: true }
+        );
+
+    if (address.substation_id) {
+        embed.addFields({ name: 'Substation ID', value: address.substation_id, inline: true });
+    }
+    if (address.planet_id) {
+        embed.addFields({ name: 'Planet ID', value: address.planet_id, inline: true });
+    }
+    if (address.fleet_id) {
+        embed.addFields({ name: 'Fleet ID', value: address.fleet_id, inline: true });
+    }
+
+    embed.addFields(
+        { name: '\u200b', value: '\u200b' },
+        { name: 'Ore', value: address.ore || '0', inline: true },
+        { name: 'Load', value: address.load || '0', inline: true },
+        { name: 'Structs Load', value: address.structs_load || '0', inline: true },
+        { name: 'Capacity', value: address.capacity || '0', inline: true },
+        { name: 'Connection Capacity', value: address.connection_capacity || '0', inline: true },
+        { name: 'Total Load', value: address.total_load || '0', inline: true },
+        { name: 'Total Capacity', value: address.total_capacity || '0', inline: true }
+    );
+
+    if (address.primary_address && address.primary_address !== address.address) {
+        embed.addFields({ name: 'Primary Address', value: address.primary_address, inline: false });
+    }
+
+    return embed;
 };
 
 module.exports = {

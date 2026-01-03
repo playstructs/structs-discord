@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { handleError, createSuccessEmbed, createWarningEmbed, validatePlayerRegistration } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -70,29 +71,43 @@ module.exports = {
                     [interaction.user.id]
                 );
 
-                if (playerResult.rows.length === 0) {
-                    return await interaction.editReply('You are not registered as a player. Please join a guild first.');
+                const registrationError = validatePlayerRegistration(
+                    playerResult,
+                    'You are not registered as a player. Please use `/join` to join a guild first.'
+                );
+                if (registrationError) {
+                    return await interaction.editReply({ embeds: [registrationError] });
                 }
 
                 const playerId = playerResult.rows[0].player_id;
                 const fleetId = playerResult.rows[0].fleet_id;
                 const destinationId = interaction.options.getString('destination');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Fleet Deployment Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your fleet deployment request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Destination', value: destinationId, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
+                if (!fleetId) {
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'No Fleet',
+                            'You do not have a fleet. You need a fleet to deploy.'
+                        )]
+                    });
+                }
 
                 // Execute the fleet move transaction
                 await db.query(
                     'SELECT signer.tx_fleet_move($1, $2, $3)',
                     [playerId, fleetId, destinationId]
                 );
+
+                const embed = createSuccessEmbed(
+                    'Fleet Deployment Submitted',
+                    'Your fleet deployment request has been submitted for processing.',
+                    [
+                        { name: 'Fleet ID', value: fleetId, inline: true },
+                        { name: 'Destination', value: destinationId, inline: true }
+                    ]
+                );
+
+                await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'return') {
                 // Get player ID, fleet ID, and planet ID
                 const playerResult = await db.query(
@@ -100,37 +115,56 @@ module.exports = {
                     [interaction.user.id]
                 );
 
-                if (playerResult.rows.length === 0) {
-                    return await interaction.editReply('You are not registered as a player. Please join a guild first.');
+                const registrationError = validatePlayerRegistration(
+                    playerResult,
+                    'You are not registered as a player. Please use `/join` to join a guild first.'
+                );
+                if (registrationError) {
+                    return await interaction.editReply({ embeds: [registrationError] });
                 }
 
                 const playerId = playerResult.rows[0].player_id;
                 const fleetId = playerResult.rows[0].fleet_id;
                 const planetId = playerResult.rows[0].planet_id;
 
-                if (!planetId) {
-                    return await interaction.editReply('You do not have a planet to return to.');
+                if (!fleetId) {
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'No Fleet',
+                            'You do not have a fleet to return.'
+                        )]
+                    });
                 }
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Fleet Return Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your fleet return request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Destination', value: planetId, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
+                if (!planetId) {
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'No Planet',
+                            'You do not have a planet to return to. Use `/explore` to discover a planet first.'
+                        )]
+                    });
+                }
 
                 // Execute the fleet move transaction
                 await db.query(
                     'SELECT signer.tx_fleet_move($1, $2, $3)',
                     [playerId, fleetId, planetId]
                 );
+
+                const embed = createSuccessEmbed(
+                    'Fleet Return Submitted',
+                    'Your fleet return request has been submitted for processing.',
+                    [
+                        { name: 'Fleet ID', value: fleetId, inline: true },
+                        { name: 'Destination', value: planetId, inline: true }
+                    ]
+                );
+
+                await interaction.editReply({ embeds: [embed] });
             }
         } catch (error) {
-            console.error('Error executing fleet command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your fleet request.`);
+            const { embed } = handleError(error, 'fleet command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

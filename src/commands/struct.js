@@ -1,7 +1,9 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
+const { getPlayerId } = require('../utils/player');
+const { formatStructChoice, getStructAttribute } = require('../utils/structs');
 const crypto = require('crypto');
 
 module.exports = {
@@ -211,17 +213,11 @@ module.exports = {
         const subcommand = interaction.options.getSubcommand();
 
         try {
-            // Get player ID from Discord username
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            if (playerResult.rows.length === 0) {
+            // Get player ID from Discord ID
+            const playerId = await getPlayerId(interaction.user.id);
+            if (!playerId) {
                 return;
             }
-
-            const playerId = playerResult.rows[0].player_id;
 
             if (subcommand === 'define') {
                 if (focusedOption.name === 'struct_type') {
@@ -271,19 +267,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'activate') {
@@ -311,19 +295,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'deactivate') {
@@ -351,19 +323,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'mine') {
@@ -387,19 +347,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'refine') {
@@ -423,19 +371,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'attack') {
@@ -459,19 +395,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 } else if (focusedOption.name === 'target_struct') {
                     const result = await db.query(
@@ -486,19 +410,7 @@ module.exports = {
                         [`%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'defense-clear') {
@@ -521,19 +433,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'defense-set') {
@@ -556,19 +456,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 } else if (focusedOption.name === 'protected_struct') {
                     const result = await db.query(
@@ -584,19 +472,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'stealth-activate') {
@@ -625,19 +501,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             } else if (subcommand === 'stealth-deactivate') {
@@ -666,19 +530,7 @@ module.exports = {
                         [playerId, `%${focusedValue}%`]
                     );
 
-                    const choices = result.rows.map(row => {
-                        const typeEmojiKey = row.icon;
-                        const typeEmoji = EMOJIS[typeEmojiKey] || '🏗️';
-                        
-                        const ambitEmojiKey = `RANGE_${row.ambit}`;
-                        const ambitEmoji = EMOJIS[ambitEmojiKey] || '🌍';
-                        
-                        return {
-                            name: `${typeEmoji} ${row.name} ${ambitEmoji}`,
-                            value: row.value
-                        };
-                    });
-
+                    const choices = result.rows.map(formatStructChoice);
                     await interaction.respond(choices);
                 }
             }
@@ -699,8 +551,12 @@ module.exports = {
                 [interaction.user.id]
             );
 
-            if (playerResult.rows.length === 0) {
-                return await interaction.editReply('You are not registered as a player. Please join a guild first.');
+            const registrationError = validatePlayerRegistration(
+                playerResult,
+                'You are not registered as a player. Please use `/join` to join a guild first.'
+            );
+            if (registrationError) {
+                return await interaction.editReply({ embeds: [registrationError] });
             }
 
             const playerId = playerResult.rows[0].player_id;
@@ -711,34 +567,36 @@ module.exports = {
                 const structType = interaction.options.getString('struct_type');
                 const slot = interaction.options.getInteger('slot');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Structure Definition Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your structure definition has been submitted for processing.')
-                    .addFields(
-                        { name: 'Category', value: category, inline: true },
-                        { name: 'Ambit', value: ambit, inline: true },
-                        { name: 'Slot', value: slot.toString(), inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
-
                 // Execute the structure definition transaction
                 await db.query(
                     'SELECT signer.tx_struct_build_initiate($1, $2, $3, $4)',
                     [playerId, parseInt(structType), ambit, slot]
                 );
-            } else if (subcommand === 'build') {
-                
-                const structId = interaction.options.getString('struct');
 
-                const playerResult = await db.query(
-                    "select struct_attribute.val as build_start_block from struct_attribute where attribute_type = 'blockStartBuild' and object_id = $1",
-                    [structId]
+                const embed = createSuccessEmbed(
+                    'Structure Definition Submitted',
+                    'Your structure definition has been submitted for processing.',
+                    [
+                        { name: 'Category', value: category, inline: true },
+                        { name: 'Ambit', value: ambit, inline: true },
+                        { name: 'Slot', value: slot.toString(), inline: true }
+                    ]
                 );
-                
-                const nonce = interaction.options.getString('nonce');
-                const buildStartBlock = playerResult.rows[0].build_start_block;
+
+                await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'build') {
+                const structId = interaction.options.getString('struct');
+                const nonce = interaction.options.getInteger('nonce');
+
+                const buildStartBlock = await getStructAttribute(structId, 'blockStartBuild');
+                if (buildStartBlock === null) {
+                    return await interaction.editReply({
+                        embeds: [createWarningEmbed(
+                            'Build Data Not Found',
+                            'This structure does not have build data. It may not be ready to build yet.'
+                        )]
+                    });
+                }
 
                 // performingStructure.Id + "BUILD" + buildStartBlockString + "NONCE" + strconv.Itoa(i)
                 const proofBase = structId + "BUILD" + buildStartBlock.toString() + "NONCE" + nonce;
@@ -749,72 +607,73 @@ module.exports = {
                     .digest('hex');
 
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Structure Build Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your structure build request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true },
-                        { name: 'Proof', value: proof, inline: true },
-                        { name: 'Build Start Block', value: buildStartBlock.toString(), inline: true },
-                        { name: 'Proof Base', value: proofBase, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
-
                 // Execute the structure build completion transaction
                 await db.query(
                     'SELECT signer.tx_struct_build_complete($1, $2, $3, $4)',
                     [playerId, structId, proof, nonce]
                 );
-            } else if (subcommand === 'activate') {
-                const structId = interaction.options.getString('struct');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Structure Activation Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your structure activation request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true }
-                    );
+                const embed = createSuccessEmbed(
+                    'Structure Build Submitted',
+                    'Your structure build request has been submitted for processing.',
+                    [
+                        { name: 'Structure ID', value: structId, inline: true },
+                        { name: 'Nonce', value: nonce.toString(), inline: true },
+                        { name: 'Proof', value: proof.substring(0, 16) + '...', inline: false },
+                        { name: 'Build Start Block', value: buildStartBlock.toString(), inline: true }
+                    ]
+                );
 
                 await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'activate') {
+                const structId = interaction.options.getString('struct');
 
                 // Execute the structure activation transaction
                 await db.query(
                     'SELECT signer.tx_struct_activate($1, $2)',
                     [playerId, structId]
                 );
-            } else if (subcommand === 'deactivate') {
-                const structId = interaction.options.getString('struct');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Structure Deactivation Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your structure deactivation request has been submitted for processing.')
-                    .addFields(
+                const embed = createSuccessEmbed(
+                    'Structure Activation Submitted',
+                    'Your structure activation request has been submitted for processing.',
+                    [
                         { name: 'Structure ID', value: structId, inline: true }
-                    );
+                    ]
+                );
 
                 await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'deactivate') {
+                const structId = interaction.options.getString('struct');
 
                 // Execute the structure deactivation transaction
                 await db.query(
                     'SELECT signer.tx_struct_deactivate($1, $2)',
                     [playerId, structId]
                 );
-            } else if (subcommand === 'mine') {
-                const structId = interaction.options.getString('struct');
-                const nonce = interaction.options.getString('nonce');
 
-
-                const playerResult = await db.query(
-                    "select struct_attribute.val as mine_start_block from struct_attribute where attribute_type = 'blockStartOreMine' and object_id = $1",
-                    [structId]
+                const embed = createSuccessEmbed(
+                    'Structure Deactivation Submitted',
+                    'Your structure deactivation request has been submitted for processing.',
+                    [
+                        { name: 'Structure ID', value: structId, inline: true }
+                    ]
                 );
 
-                const mineStartBlock = playerResult.rows[0].mine_start_block;
+                await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'mine') {
+                const structId = interaction.options.getString('struct');
+                const nonce = interaction.options.getInteger('nonce');
+
+                const mineStartBlock = await getStructAttribute(structId, 'blockStartOreMine');
+                if (mineStartBlock === null) {
+                    return await interaction.editReply({
+                        embeds: [createWarningEmbed(
+                            'Mining Data Not Found',
+                            'This structure does not have mining data. Mining may not have started yet.'
+                        )]
+                    });
+                }
 
                 const proofBase = structId + "MINE" + mineStartBlock.toString() + "NONCE" + nonce; 
 
@@ -823,35 +682,37 @@ module.exports = {
                     .update(proofBase)
                     .digest('hex');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Mining Request Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your mining request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true },
-                        { name: 'Proof', value: proof, inline: true },
-                        { name: 'Mine Start Block', value: mineStartBlock.toString(), inline: true },
-                        { name: 'Proof Base', value: proofBase, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
-
                 // Execute the structure mining transaction
                 await db.query(
                     'SELECT signer.tx_struct_ore_mine_complete($1, $2, $3, $4)',
                     [playerId, structId, proof, nonce]
                 );
-            } else if (subcommand === 'refine') {
-                const structId = interaction.options.getString('struct');
-                const nonce = interaction.options.getString('nonce');
 
-                const playerResult = await db.query(
-                    "select struct_attribute.val as refine_start_block from struct_attribute where attribute_type = 'blockStartOreRefine' and object_id = $1",
-                    [structId]
+                const embed = createSuccessEmbed(
+                    'Mining Request Submitted',
+                    'Your mining request has been submitted for processing.',
+                    [
+                        { name: 'Structure ID', value: structId, inline: true },
+                        { name: 'Nonce', value: nonce.toString(), inline: true },
+                        { name: 'Proof', value: proof.substring(0, 16) + '...', inline: false },
+                        { name: 'Mine Start Block', value: mineStartBlock.toString(), inline: true }
+                    ]
                 );
 
-                const refineStartBlock = playerResult.rows[0].refine_start_block;
+                await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'refine') {
+                const structId = interaction.options.getString('struct');
+                const nonce = interaction.options.getInteger('nonce');
+
+                const refineStartBlock = await getStructAttribute(structId, 'blockStartOreRefine');
+                if (refineStartBlock === null) {
+                    return await interaction.editReply({
+                        embeds: [createWarningEmbed(
+                            'Refining Data Not Found',
+                            'This structure does not have refining data. Refining may not have started yet.'
+                        )]
+                    });
+                }
 
                 const proofBase = structId + "REFINE" + refineStartBlock.toString() + "NONCE" + nonce; 
 
@@ -860,125 +721,124 @@ module.exports = {
                     .update(proofBase)
                     .digest('hex');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Refining Request Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your refining request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true },
-                        { name: 'Nonce', value: nonce.toString(), inline: true },
-                        { name: 'Proof', value: proof, inline: true },
-                        { name: 'Refine Start Block', value: refineStartBlock.toString(), inline: true },
-                        { name: 'Proof Base', value: proofBase, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
-
                 // Execute the structure refining transaction
                 await db.query(
                     'SELECT signer.tx_struct_ore_refine_complete($1, $2, $3, $4)',
                     [playerId, structId, proof, nonce]
                 );
+
+                const embed = createSuccessEmbed(
+                    'Refining Request Submitted',
+                    'Your refining request has been submitted for processing.',
+                    [
+                        { name: 'Structure ID', value: structId, inline: true },
+                        { name: 'Nonce', value: nonce.toString(), inline: true },
+                        { name: 'Proof', value: proof.substring(0, 16) + '...', inline: false },
+                        { name: 'Refine Start Block', value: refineStartBlock.toString(), inline: true }
+                    ]
+                );
+
+                await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'attack') {
                 const attackerStructId = interaction.options.getString('attacker_struct');
                 const targetStructId = interaction.options.getString('target_struct');
                 const weaponSystem = interaction.options.getString('weapon_system');
-
-                const embed = new EmbedBuilder()
-                    .setTitle('Attack Request Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your attack request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Attacker Structure', value: attackerStructId, inline: true },
-                        { name: 'Target Structure', value: targetStructId, inline: true },
-                        { name: 'Weapon System', value: weaponSystem, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
 
                 // Execute the structure attack transaction
                 await db.query(
                     'SELECT signer.tx_struct_attack($1, $2, $3, $4)',
                     [playerId, attackerStructId, targetStructId, weaponSystem]
                 );
-            } else if (subcommand === 'defense-clear') {
-                const defenderStructId = interaction.options.getString('defender_struct');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Defense Clear Request Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your defense clear request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Structure ID', value: defenderStructId, inline: true }
-                    );
+                const embed = createSuccessEmbed(
+                    'Attack Request Submitted',
+                    'Your attack request has been submitted for processing.',
+                    [
+                        { name: 'Attacker Structure', value: attackerStructId, inline: true },
+                        { name: 'Target Structure', value: targetStructId, inline: true },
+                        { name: 'Weapon System', value: weaponSystem, inline: true }
+                    ]
+                );
 
                 await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'defense-clear') {
+                const defenderStructId = interaction.options.getString('defender_struct');
 
                 // Execute the structure defense clear transaction
                 await db.query(
                     'SELECT signer.tx_struct_defense_clear($1, $2)',
                     [playerId, defenderStructId]
                 );
+
+                const embed = createSuccessEmbed(
+                    'Defense Clear Request Submitted',
+                    'Your defense clear request has been submitted for processing.',
+                    [
+                        { name: 'Structure ID', value: defenderStructId, inline: true }
+                    ]
+                );
+
+                await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'defense-set') {
                 const defenderStructId = interaction.options.getString('defender_struct');
                 const protectedStructId = interaction.options.getString('protected_struct');
-
-                const embed = new EmbedBuilder()
-                    .setTitle('Defense Set Request Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your defense set request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Defender Structure', value: defenderStructId, inline: true },
-                        { name: 'Protected Structure', value: protectedStructId, inline: true }
-                    );
-
-                await interaction.editReply({ embeds: [embed] });
 
                 // Execute the structure defense set transaction
                 await db.query(
                     'SELECT signer.tx_struct_defense_set($1, $2, $3)',
                     [playerId, defenderStructId, protectedStructId]
                 );
-            } else if (subcommand === 'stealth-activate') {
-                const structId = interaction.options.getString('struct');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Stealth Activation Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your stealth activation request has been submitted for processing.')
-                    .addFields(
-                        { name: 'Structure ID', value: structId, inline: true }
-                    );
+                const embed = createSuccessEmbed(
+                    'Defense Set Request Submitted',
+                    'Your defense set request has been submitted for processing.',
+                    [
+                        { name: 'Defender Structure', value: defenderStructId, inline: true },
+                        { name: 'Protected Structure', value: protectedStructId, inline: true }
+                    ]
+                );
 
                 await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'stealth-activate') {
+                const structId = interaction.options.getString('struct');
 
                 // Execute the structure stealth activation transaction
                 await db.query(
                     'SELECT signer.tx_struct_stealth_activate($1, $2)',
                     [playerId, structId]
                 );
-            } else if (subcommand === 'stealth-deactivate') {
-                const structId = interaction.options.getString('struct');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Stealth Deactivation Submitted')
-                    .setColor('#00ff00')
-                    .setDescription('Your stealth deactivation request has been submitted for processing.')
-                    .addFields(
+                const embed = createSuccessEmbed(
+                    'Stealth Activation Submitted',
+                    'Your stealth activation request has been submitted for processing.',
+                    [
                         { name: 'Structure ID', value: structId, inline: true }
-                    );
+                    ]
+                );
 
                 await interaction.editReply({ embeds: [embed] });
+            } else if (subcommand === 'stealth-deactivate') {
+                const structId = interaction.options.getString('struct');
 
                 // Execute the structure stealth deactivation transaction
                 await db.query(
                     'SELECT signer.tx_struct_stealth_deactivate($1, $2)',
                     [playerId, structId]
                 );
+
+                const embed = createSuccessEmbed(
+                    'Stealth Deactivation Submitted',
+                    'Your stealth deactivation request has been submitted for processing.',
+                    [
+                        { name: 'Structure ID', value: structId, inline: true }
+                    ]
+                );
+
+                await interaction.editReply({ embeds: [embed] });
             }
         } catch (error) {
-            console.error('Error executing struct command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your struct request.`);
+            const { embed } = handleError(error, 'struct command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

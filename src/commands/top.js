@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { handleError, createWarningEmbed } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -107,13 +108,18 @@ module.exports = {
                     embed = await createOffersLeaderboard(orderBy);
                     break;
                 default:
-                    return await interaction.editReply('Invalid subcommand.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Invalid Subcommand',
+                            'The selected subcommand is not valid. Please choose a valid option.'
+                        )]
+                    });
             }
 
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error executing top command:', error);
-            await interaction.editReply('An error occurred while fetching the leaderboard.');
+            const { embed } = handleError(error, 'top command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 };

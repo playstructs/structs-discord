@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
-const { EMOJIS } = require('../constants/emojis');
+const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,30 +17,34 @@ module.exports = {
                 [interaction.user.id]
             );
 
-            if (playerResult.rows.length === 0) {
-                return await interaction.editReply('You are not registered as a player. Please join a guild first.');
+            const registrationError = validatePlayerRegistration(
+                playerResult,
+                'You are not registered as a player. Please use `/join` to join a guild first.'
+            );
+            if (registrationError) {
+                return await interaction.editReply({ embeds: [registrationError] });
             }
 
             const playerId = playerResult.rows[0].player_id;
-
-            const embed = new EmbedBuilder()
-                .setTitle('Exploration Request Submitted')
-                .setColor('#00ff00')
-                .setDescription('Your exploration request has been submitted for processing.')
-                .addFields(
-                    { name: 'Player ID', value: playerId, inline: true }
-                );
-
-            await interaction.editReply({ embeds: [embed] });
 
             // Execute the explore transaction
             await db.query(
                 'SELECT signer.tx_explore($1)',
                 [playerId]
             );
+
+            const embed = createSuccessEmbed(
+                'Exploration Request Submitted',
+                'Your exploration request has been submitted for processing. You will be assigned a new planet.',
+                [
+                    { name: 'Player ID', value: playerId, inline: true }
+                ]
+            );
+
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error executing explore command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your exploration request.`);
+            const { embed } = handleError(error, 'explore command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

@@ -1,69 +1,104 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
-        .setDescription('Display all available commands'),
+        .setDescription('Display all available commands and their descriptions'),
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
         try {
-            const embed = new EmbedBuilder()
-                .setTitle(`${EMOJIS.CURRENCY.ALPHA} Structs Bot Commands ${EMOJIS.CURRENCY.ALPHA}`)
+            const mainEmbed = new EmbedBuilder()
+                .setTitle(`${EMOJIS.CURRENCY.ALPHA} Structs Discord Bot ${EMOJIS.CURRENCY.ALPHA}`)
                 .setColor('#0099ff')
-                .setDescription(
-                    '/search - Find anything! Players, guilds, and more\n' +
-                    '/top - View leaderboards\n' +
-                    '## Player Commands\n' +
-                    '/join - Join a guild and create an account\n' +
-                    '/station - View your profile\n' +
-                    '/explore - Explore a new planet\n' +
-                    '/send - Transfer resources\n' +
-                    '/player-resume - Resume after spam detection lockout\n' +
-                    '## Struct Commands\n' +
-                    '/struct define - Define a new struct\n' +
-                    '/struct build - Complete struct construction\n' +
-                    '/struct activate - Activate a built struct\n' +
-                    '/struct deactivate - Deactivate an active struct\n' +
-                    '/struct mine - Mine resources from a struct\n' +
-                    '/struct refine - Refine resources in a struct\n' +
-                    '/struct attack - Attack a target struct\n' +
-                    '/struct defense-clear - Clear defense systems\n' +
-                    '/struct defense-set - Set struct protection\n' +
-                    '/struct stealth-activate - Activate stealth systems\n' +
-                    '/struct stealth-deactivate - Deactivate stealth systems\n' +
-                    '## Fleet Commands\n' +
-                    '/fleet deploy - Deploy fleet to destination\n' +
-                    '/fleet return - Return fleet to planet\n' +
-                    '/raid - Complete a planet raid and steal available Ore\n' +
-                    '## Energy Market\n' +
-                    '/redeem - Convert Guild Token to Alpha\n' +
-                    '/offer - Create resource offers\n' +
-                    '/buy - Accept offers\n' +
-                    '## Energy Administration\n' +
-                    '/allocation create - Set up Energy allocations\n' +
-                    '/allocation connect - Link allocations to substations\n' +
-                    '/allocation disconnect - Deallocate from substations\n' +
-                    '/allocation transfer - Transfer an allocation to another\n' +
-                    '/substation create - Create a new substation\n' +
-                    '/substation player-connect - Connect a player\n' +
-                    '/substation player-disconnect - Disconnect a player\n' +
-                    '/infuse - Add Alpha Matter for Energy Production\n' +
-                    '## Guild Administration\n' +
-                    '/guild authorization-status - Authorize Bot for Guild\n' +
-                    '## GRASS Notifications\n' +
-                    '/grass subscribe - Subscribe to GRASS notifications\n' +
-                    '/grass unsubscribe - Unsubscribe from GRASS notifications\n' +
-                    '/grass list - List active GRASS subscriptions'
-                );
+                .setDescription('A comprehensive Discord bot for managing your Structs game experience.')
+                .addFields(
+                    {
+                        name: `${EMOJIS.STATUS.INFO} Search & Discovery`,
+                        value: '`/search` - Find players, guilds, structs, planets, and more by ID or name\n' +
+                               '`/top` - View leaderboards and rankings',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.SYSTEM.MEMBER_DIRECTORY} Player Commands`,
+                        value: '`/join` - Join a guild and create your account\n' +
+                               '`/station` - View your player profile and stats\n' +
+                               '`/explore` - Explore a new planet\n' +
+                               '`/send` - Transfer resources to other players\n' +
+                               '`/inventory` - View player inventory and balances\n' +
+                               '`/player-resume` - Resume your account after spam detection lockout',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.STRUCT.PLANETARY} Struct Commands`,
+                        value: '`/struct define` - Define a new structure\n' +
+                               '`/struct build` - Complete struct construction\n' +
+                               '`/struct activate` - Activate a built struct\n' +
+                               '`/struct deactivate` - Deactivate an active struct\n' +
+                               '`/struct mine` - Mine resources from a struct\n' +
+                               '`/struct refine` - Refine resources in a struct\n' +
+                               '`/struct attack` - Attack a target struct\n' +
+                               '`/struct defense-clear` - Clear defense systems\n' +
+                               '`/struct defense-set` - Set struct protection\n' +
+                               '`/struct stealth-activate` - Activate stealth systems\n' +
+                               '`/struct stealth-deactivate` - Deactivate stealth systems',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.STRUCT.FLEET} Fleet Commands`,
+                        value: '`/fleet deploy` - Deploy fleet to a destination planet\n' +
+                               '`/fleet return` - Return fleet to your planet\n' +
+                               '`/raid` - Complete a planet raid and steal available Ore',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.CURRENCY.ALPHA} Energy Market`,
+                        value: '`/redeem` - Convert Guild Token to Alpha Matter\n' +
+                               '`/offer` - Create resource offers for other players\n' +
+                               '`/buy` - Accept resource offers from providers',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.SYSTEM.GRID} Energy Administration`,
+                        value: '`/allocation create` - Set up Energy allocations\n' +
+                               '`/allocation connect` - Link allocations to substations\n' +
+                               '`/allocation disconnect` - Deallocate from substations\n' +
+                               '`/allocation transfer` - Transfer an allocation to another address\n' +
+                               '`/substation create` - Create a new substation\n' +
+                               '`/substation player-connect` - Connect a player to substation\n' +
+                               '`/substation player-disconnect` - Disconnect a player from substation\n' +
+                               '`/infuse` - Add Alpha Matter for Energy Production',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.SYSTEM.GUILD} Guild Administration`,
+                        value: '`/guild authorization-status` - Authorize Bot for Guild operations',
+                        inline: false
+                    },
+                    {
+                        name: `${EMOJIS.SYSTEM.GRID} GRASS Event Streaming`,
+                        value: '`/grass subscribe` - Subscribe to game event notifications\n' +
+                               '`/grass unsubscribe` - Unsubscribe from event notifications\n' +
+                               '`/grass list` - List all active subscriptions for this channel\n\n' +
+                               '**Examples:**\n' +
+                               '• `structs.grid.>` - All grid updates\n' +
+                               '• `structs.planet.>` - All planet activity\n' +
+                               '• `structs.inventory.>` - All inventory transactions\n' +
+                               '• `structs.guild.>` - All guild updates',
+                        inline: false
+                    }
+                )
+                .setFooter({ text: 'Use /help <command> for detailed information about a specific command' })
+                .setTimestamp();
 
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [mainEmbed] });
         } catch (error) {
-            console.error('Error executing help command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while displaying the help information.`);
+            const { embed } = handleError(error, 'help command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

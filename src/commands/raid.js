@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const crypto = require('crypto');
+const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -25,18 +25,36 @@ module.exports = {
                 [interaction.user.id]
             );
 
-            if (playerResult.rows.length === 0) {
-                return await interaction.editReply('You are not registered as a player. Please join a guild first.');
+            const registrationError = validatePlayerRegistration(
+                playerResult,
+                'You are not registered as a player. Please use `/join` to join a guild first.'
+            );
+            if (registrationError) {
+                return await interaction.editReply({ embeds: [registrationError] });
             }
 
             const playerId = playerResult.rows[0].player_id;
             const fleetId = playerResult.rows[0].fleet_id;
             const planetId = playerResult.rows[0].planet_id;
             const activeRaidBlock = playerResult.rows[0].active_raid_block;
-            const nonce = interaction.options.getString('nonce');
+            const nonce = interaction.options.getInteger('nonce');
 
-            if (activeRaidBlock === 0) {
-                return await interaction.editReply('The fleet is not currently raiding a planet!');
+            if (!fleetId) {
+                return await interaction.editReply({ 
+                    embeds: [createWarningEmbed(
+                        'No Fleet',
+                        'You do not have a fleet. You need a fleet to perform raids.'
+                    )]
+                });
+            }
+
+            if (activeRaidBlock === 0 || !activeRaidBlock) {
+                return await interaction.editReply({ 
+                    embeds: [createWarningEmbed(
+                        'No Active Raid',
+                        'The fleet is not currently raiding a planet. Deploy your fleet to a planet first to start a raid.'
+                    )]
+                });
             }
 
             // performingFleet.Id + "@" + planet.Id + "RAID" + activeRaidBlockString + "NONCE" + strconv.Itoa(i)
@@ -46,30 +64,28 @@ module.exports = {
                 .update(proofBase)
                 .digest('hex');
 
-            const embed = new EmbedBuilder()
-                .setTitle('Raid Request Submitted')
-                .setColor('#00ff00')
-                .setDescription('Your raid request has been submitted for processing.')
-                .addFields(
-                    { name: 'Nonce', value: nonce.toString(), inline: true },
-                    { name: 'Proof', value: proof, inline: true },
-                    { name: 'Proof Base', value: proofBase, inline: false },
-                    { name: 'Fleet ID', value: fleetId, inline: true },
-                    { name: 'Planet ID', value: planetId, inline: true },
-                    { name: 'Active Raid Block', value: activeRaidBlock, inline: true }
-                );
-
-            await interaction.editReply({ embeds: [embed] });
-
-   
             // Execute the raid completion transaction
             await db.query(
                 'SELECT signer.tx_planet_raid_complete($1, $2, $3, $4)',
                 [playerId, fleetId, proof, nonce]
             );
+
+            const embed = createSuccessEmbed(
+                'Raid Request Submitted',
+                'Your raid request has been submitted for processing.',
+                [
+                    { name: 'Fleet ID', value: fleetId, inline: true },
+                    { name: 'Planet ID', value: planetId, inline: true },
+                    { name: 'Active Raid Block', value: activeRaidBlock.toString(), inline: true },
+                    { name: 'Nonce', value: nonce.toString(), inline: true },
+                    { name: 'Proof', value: proof.substring(0, 16) + '...', inline: false }
+                ]
+            );
+
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error executing raid command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your raid request.`);
+            const { embed } = handleError(error, 'raid command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

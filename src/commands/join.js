@@ -1,5 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const db = require('../database');
+const { handleError, createSuccessEmbed, createWarningEmbed } = require('../utils/errors');
+const { EMOJIS } = require('../constants/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -56,9 +58,6 @@ module.exports = {
                 }
             }
             
-            // Log the choices for debugging
-            console.log(`Join autocomplete choices for "${focusedValue}":`, choices);
-            
             // Ensure we're responding with valid choices
             if (choices.length > 0) {
                 await interaction.respond(choices);
@@ -85,8 +84,13 @@ module.exports = {
             let guildId;
 
             // Get guild ID from tag or use provided ID
-            if (guildIdentifier == 'no-results') {
-                return await interaction.editReply('Error, no selection made');
+            if (guildIdentifier === 'no-results' || guildIdentifier === 'error') {
+                return await interaction.editReply({ 
+                    embeds: [createWarningEmbed(
+                        'Invalid Selection',
+                        'Please select a valid guild from the autocomplete suggestions.'
+                    )]
+                });
             } else if (guildIdentifier.includes('-')) {
                 guildId = guildIdentifier;
             } else {
@@ -95,7 +99,12 @@ module.exports = {
                     [guildIdentifier]
                 );
                 if (guildResult.rows.length === 0) {
-                    return await interaction.editReply('Guild not found.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Guild Not Found',
+                            'The specified guild was not found. Please check the guild tag or ID and try again.'
+                        )]
+                    });
                 }
                 guildId = guildResult.rows[0].id;
             }
@@ -110,7 +119,12 @@ module.exports = {
             );
 
             if (playerCheck.rows.length > 0) {
-                return await interaction.editReply('You are already registered as a player.');
+                return await interaction.editReply({ 
+                    embeds: [createWarningEmbed(
+                        'Already Registered',
+                        'You are already registered as a player. Use `/station` to view your profile.'
+                    )]
+                });
             }
 
             // Check if player already has a pending join request
@@ -120,7 +134,12 @@ module.exports = {
             );
 
             if (pendingCheck.rows.length > 0) {
-                return await interaction.editReply('You already have a pending join request. Please wait for it to be processed.');
+                return await interaction.editReply({ 
+                    embeds: [createWarningEmbed(
+                        'Pending Request',
+                        'You already have a pending join request. Please wait for it to be processed before submitting another request.'
+                    )]
+                });
             }
 
             // Insert the join request
@@ -129,10 +148,20 @@ module.exports = {
                 [guildId, discordId, discordUsername]
             );
 
-            return await interaction.editReply('Your join request has been submitted. The backend process will handle your registration. You will be able to use more commands once your registration is complete.');
+            const embed = createSuccessEmbed(
+                'Join Request Submitted',
+                'Your join request has been submitted successfully. The backend process will handle your registration.',
+                [
+                    { name: 'Guild ID', value: guildId, inline: true },
+                    { name: 'Discord Username', value: discordUsername, inline: true }
+                ]
+            );
+            embed.setFooter({ text: 'You will be able to use more commands once your registration is complete.' });
+
+            return await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error executing join command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your join request.`);
+            const { embed } = handleError(error, 'join command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

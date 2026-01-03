@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -209,8 +209,12 @@ module.exports = {
                         [interaction.user.id]
                     );
 
-                    if (playerResult.rows.length === 0) {
-                        return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Player not found. Please ensure you are registered.`);
+                    const registrationError = validatePlayerRegistration(
+                        playerResult,
+                        'Player not found. Please ensure you are registered using `/join`.'
+                    );
+                    if (registrationError) {
+                        return await interaction.editReply({ embeds: [registrationError] });
                     }
 
                     const playerId = playerResult.rows[0].player_id;
@@ -221,13 +225,13 @@ module.exports = {
                         [playerId, allocationId]
                     );
 
-                    const embed = new EmbedBuilder()
-                        .setTitle('Substation Created')
-                        .setColor('#00ff00')
-                        .setDescription('Your substation has been created successfully!')
-                        .addFields(
+                    const embed = createSuccessEmbed(
+                        'Substation Created',
+                        'Your substation has been created successfully!',
+                        [
                             { name: 'Allocation ID', value: allocationId, inline: true }
-                        );
+                        ]
+                    );
 
                     await interaction.editReply({ embeds: [embed] });
                     break;
@@ -242,8 +246,12 @@ module.exports = {
                         [interaction.user.id]
                     );
 
-                    if (playerResult.rows.length === 0) {
-                        return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Player not found. Please ensure you are registered.`);
+                    const registrationError = validatePlayerRegistration(
+                        playerResult,
+                        'Player not found. Please ensure you are registered using `/join`.'
+                    );
+                    if (registrationError) {
+                        return await interaction.editReply({ embeds: [registrationError] });
                     }
 
                     const playerId = playerResult.rows[0].player_id;
@@ -254,14 +262,14 @@ module.exports = {
                         [playerId, substationId, targetPlayerId]
                     );
 
-                    const embed = new EmbedBuilder()
-                        .setTitle('Player Connected')
-                        .setColor('#00ff00')
-                        .setDescription('Player has been connected to the substation successfully!')
-                        .addFields(
+                    const embed = createSuccessEmbed(
+                        'Player Connected',
+                        'Player has been connected to the substation successfully!',
+                        [
                             { name: 'Substation ID', value: substationId, inline: true },
                             { name: 'Player ID', value: targetPlayerId, inline: true }
-                        );
+                        ]
+                    );
 
                     await interaction.editReply({ embeds: [embed] });
                     break;
@@ -275,8 +283,12 @@ module.exports = {
                         [interaction.user.id]
                     );
 
-                    if (playerResult.rows.length === 0) {
-                        return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Player not found. Please ensure you are registered.`);
+                    const registrationError = validatePlayerRegistration(
+                        playerResult,
+                        'Player not found. Please ensure you are registered using `/join`.'
+                    );
+                    if (registrationError) {
+                        return await interaction.editReply({ embeds: [registrationError] });
                     }
 
                     const playerId = playerResult.rows[0].player_id;
@@ -287,21 +299,21 @@ module.exports = {
                         [playerId, targetPlayerId]
                     );
 
-                    const embed = new EmbedBuilder()
-                        .setTitle('Player Disconnected')
-                        .setColor('#00ff00')
-                        .setDescription('Player has been disconnected from the substation successfully!')
-                        .addFields(
+                    const embed = createSuccessEmbed(
+                        'Player Disconnected',
+                        'Player has been disconnected from the substation successfully!',
+                        [
                             { name: 'Player ID', value: targetPlayerId, inline: true }
-                        );
+                        ]
+                    );
 
                     await interaction.editReply({ embeds: [embed] });
                     break;
                 }
             }
         } catch (error) {
-            console.error('Error executing substation command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your command.`);
+            const { embed } = handleError(error, 'substation command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

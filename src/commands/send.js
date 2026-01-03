@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -181,8 +182,12 @@ module.exports = {
                 [interaction.user.id]
             );
 
-            if (playerResult.rows.length === 0) {
-                return await interaction.editReply(`${EMOJIS.STATUS.ERROR} You are not registered. Please register first.`);
+            const registrationError = validatePlayerRegistration(
+                playerResult,
+                'You are not registered. Please use `/join` to register first.'
+            );
+            if (registrationError) {
+                return await interaction.editReply({ embeds: [registrationError] });
             }
 
             const playerId = playerResult.rows[0].player_id;
@@ -204,7 +209,12 @@ module.exports = {
                 );
 
                 if (recipientResult.rows.length === 0) {
-                    return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Recipient not found. Make sure they are registered.`);
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Recipient Not Found',
+                            'The recipient is not registered. Make sure they have joined a guild using `/join`.'
+                        )]
+                    });
                 }
 
                 recipientId = recipientResult.rows[0].player_id;
@@ -221,7 +231,12 @@ module.exports = {
                 // It's a wallet address
                 recipientAddress = recipient;
             } else {
-                return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Invalid recipient format. Use a player ID, @mention, or wallet address.`);
+                return await interaction.editReply({ 
+                    embeds: [createWarningEmbed(
+                        'Invalid Recipient Format',
+                        'Please use one of the following formats:\n• Player ID (e.g., `1-123`)\n• Discord mention (e.g., `@username`)\n• Wallet address (e.g., `structs1...`)'
+                    )]
+                });
             }
 
             // Get the recipient's address if we have their ID
@@ -232,37 +247,40 @@ module.exports = {
                 );
 
                 if (addressResult.rows.length === 0) {
-                    return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Recipient address not found.`);
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Address Not Found',
+                            'The recipient address was not found in the system.'
+                        )]
+                    });
                 }
 
                 recipientId = addressResult.rows[0].player_id;
             }
 
-            // Send the resources
-            const embed = new EmbedBuilder()
-                .setColor('#0099ff')
-                .setDescription('Your resource transfer request has been submitted for processing.')
-                .addFields(
+            // Execute the send transaction
+            await db.query(
+                'SELECT signer.tx_bank_send($1, $2, $3, $4)',
+                [playerId, amount, resource, recipientId || recipientAddress]
+            );
+
+            // Create success embed
+            const embed = createSuccessEmbed(
+                'Transfer Request Submitted',
+                'Your resource transfer request has been submitted for processing.',
+                [
                     { name: 'From', value: `${senderUsername} (${playerId})`, inline: true },
                     { name: 'To', value: `${recipientUsername || 'Address'} (${recipientId || recipientAddress})`, inline: true },
                     { name: 'Amount', value: `${amount} ${resource}`, inline: true }
-                )
-                .setTimestamp()
-                .setFooter({ text: 'Check your balance with /search or /station' });
-
-            await interaction.editReply({ 
-                content: `${EMOJIS.STATUS.SUCCESS} Transfer request submitted!`,
-                embeds: [embed]
-            });
-
-            const result = await db.query(
-                'SELECT signer.tx_bank_send($1, $2, $3, $4)',
-                [playerId, amount, resource, recipientId]
+                ]
             );
+            embed.setFooter({ text: 'Check your balance with /search or /station' });
+
+            await interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error executing send command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your transfer request.`);
+            const { embed } = handleError(error, 'send command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

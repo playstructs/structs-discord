@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError, createWarningEmbed } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -38,7 +39,12 @@ module.exports = {
                         [guildIdentifier]
                     );
                     if (guildResult.rows.length === 0) {
-                        return await interaction.editReply(`${EMOJIS.STATUS.ERROR} Guild not found.`);
+                        return await interaction.editReply({ 
+                            embeds: [createWarningEmbed(
+                                'Guild Not Found',
+                                'The specified guild was not found. Please check the guild tag or ID and try again.'
+                            )]
+                        });
                     }
                     guildId = guildResult.rows[0].id;
                 }
@@ -131,12 +137,14 @@ module.exports = {
                 if (!isSubstationSetup) {
                     // Check guild role player id
                     const substationLookup = await db.query(
-                        ' select entry_substation_id from structs.guild where id = $1;',
+                        'SELECT entry_substation_id FROM structs.guild WHERE id = $1',
                         [guildId]
                     );
-                    embed.addFields(
-                        { name: `Substation (${substationLookup.rows[0].entry_substation_id})`, value: 'No permissions, needs Associations (16), Grid (32)', inline: false }
-                    );
+                    if (substationLookup.rows.length > 0) {
+                        embed.addFields(
+                            { name: `Substation (${substationLookup.rows[0].entry_substation_id})`, value: 'No permissions, needs Associations (16), Grid (32)', inline: false }
+                        );
+                    }
                 }
 
                 if (isGuildSetup && isSubstationSetup) {
@@ -154,8 +162,8 @@ module.exports = {
                 await interaction.editReply({ embeds: [embed] });
             }
         } catch (error) {
-            console.error('Error executing guild command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`);
+            const { embed } = handleError(error, 'guild command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     },
 

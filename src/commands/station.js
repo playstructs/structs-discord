@@ -4,6 +4,7 @@ const { createEmbeds } = require('../embeds/structs');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError, createWarningEmbed } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -20,7 +21,12 @@ module.exports = {
             const data = await fetchPlayerData.byDiscordId(discordId);
             
             if (!data.rows || data.rows.length === 0) {
-                return await interaction.editReply(`${EMOJIS.STATUS.ERROR} You are not registered as a player. Use \`/join\` to register with a guild.`);
+                return await interaction.editReply({ 
+                    embeds: [createWarningEmbed(
+                        'Not Registered',
+                        'You are not registered as a player. Use `/join` to register with a guild first.'
+                    )]
+                });
             }
 
             const playerId = data.rows[0].player_id;
@@ -90,8 +96,8 @@ module.exports = {
             return await interaction.editReply({ embeds });
 
         } catch (error) {
-            console.error('Error executing station command:', error);
-            await interaction.editReply(`${EMOJIS.STATUS.ERROR} An error occurred while fetching your station information.`);
+            const { embed } = handleError(error, 'station command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

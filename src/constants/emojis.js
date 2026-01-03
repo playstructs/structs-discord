@@ -71,7 +71,10 @@ const EMOJIS = {
         GRID: '<:energy:903035734422872084>',
         GUILD: '<:GuildWorld:1009129120321511504>',
         RAID: '<:SystemRaid:1184989020153983036>'
-    }
+    },
+    ALERT: '<:SystemAlert:1184988793221173388>',
+    WARNING: '<:SystemAlert:1184988793221173388>',
+    INFO: '<:SystemInfo:1184988947210829925>'
 };
 
 module.exports = { EMOJIS }; 

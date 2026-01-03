@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
+const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -351,9 +351,25 @@ module.exports = {
                 );
 
                 if (result.rows[0].tx_allocate) {
-                    return await interaction.editReply(`Successfully allocated ${amount} from ${source} to ${destination}. Transaction ID: ${result.rows[0].tx_allocate}`);
+                    const embed = createSuccessEmbed(
+                        'Allocation Created',
+                        'Successfully created a new allocation.',
+                        [
+                            { name: 'Type', value: type, inline: true },
+                            { name: 'Source', value: source, inline: true },
+                            { name: 'Amount', value: amount, inline: true },
+                            { name: 'Destination', value: destinationAddress, inline: false },
+                            { name: 'Transaction ID', value: result.rows[0].tx_allocate, inline: false }
+                        ]
+                    );
+                    return await interaction.editReply({ embeds: [embed] });
                 } else {
-                    return await interaction.editReply('Failed to allocate resources. Please try again.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Allocation Failed',
+                            'Failed to allocate resources. Please check your inputs and try again.'
+                        )]
+                    });
                 }
             } else if (subcommand === 'connect') {
                 const allocationId = interaction.options.getString('allocation');
@@ -367,7 +383,12 @@ module.exports = {
                 );
 
                 if (allocationCheck.rows.length === 0) {
-                    return await interaction.editReply('Invalid or unavailable allocation selected.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Invalid Allocation',
+                            'The selected allocation is invalid or unavailable.'
+                        )]
+                    });
                 }
 
                 // Verify substation access
@@ -378,7 +399,12 @@ module.exports = {
                 );
 
                 if (substationCheck.rows.length === 0) {
-                    return await interaction.editReply('You do not have permission to connect to this substation.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Substation Not Found',
+                            'The selected substation was not found or you do not have permission to connect to it.'
+                        )]
+                    });
                 }
 
                 // Create connection transaction
@@ -387,9 +413,16 @@ module.exports = {
                     [playerId, allocationId, substationId]
                 );
 
-                await interaction.editReply(
-                    `Successfully connected allocation ${allocationId} to substation ${substationId}.`
+                const embed = createSuccessEmbed(
+                    'Allocation Connected',
+                    'Successfully connected the allocation to the substation.',
+                    [
+                        { name: 'Allocation ID', value: allocationId, inline: true },
+                        { name: 'Substation ID', value: substationId, inline: true }
+                    ]
                 );
+
+                await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'disconnect') {
                 const allocationId = interaction.options.getString('allocation');
 
@@ -401,7 +434,12 @@ module.exports = {
                 );
 
                 if (allocationCheck.rows.length === 0) {
-                    return await interaction.editReply('Invalid or unconnected allocation selected.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Invalid Allocation',
+                            'The selected allocation is invalid or not connected to a destination.'
+                        )]
+                    });
                 }
 
                 // Disconnect allocation
@@ -410,13 +448,13 @@ module.exports = {
                     [playerId, allocationId]
                 );
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Allocation Disconnected')
-                    .setColor('#00ff00')
-                    .setDescription('The allocation has been disconnected successfully!')
-                    .addFields(
+                const embed = createSuccessEmbed(
+                    'Allocation Disconnected',
+                    'The allocation has been disconnected successfully.',
+                    [
                         { name: 'Allocation ID', value: allocationId, inline: true }
-                    );
+                    ]
+                );
 
                 await interaction.editReply({ embeds: [embed] });
             } else if (subcommand === 'transfer') {
@@ -431,7 +469,12 @@ module.exports = {
                 );
 
                 if (allocationCheck.rows.length === 0) {
-                    return await interaction.editReply('Invalid or unavailable allocation selected.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Invalid Allocation',
+                            'The selected allocation is invalid or unavailable for transfer.'
+                        )]
+                    });
                 }
 
                 // Transfer allocation
@@ -440,20 +483,20 @@ module.exports = {
                     [playerId, allocationId, controller]
                 );
 
-                const embed = new EmbedBuilder()
-                    .setTitle('Allocation Transferred')
-                    .setColor('#00ff00')
-                    .setDescription('The allocation has been transferred successfully!')
-                    .addFields(
+                const embed = createSuccessEmbed(
+                    'Allocation Transferred',
+                    'The allocation has been transferred successfully.',
+                    [
                         { name: 'Allocation ID', value: allocationId, inline: true },
                         { name: 'New Controller', value: controller, inline: true }
-                    );
+                    ]
+                );
 
                 await interaction.editReply({ embeds: [embed] });
             }
         } catch (error) {
-            console.error('Error in allocation command:', error);
-            await interaction.editReply('An error occurred while processing your request.');
+            const { embed } = handleError(error, 'allocation command', interaction);
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

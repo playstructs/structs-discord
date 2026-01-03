@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
+const { handleError } = require('../utils/errors');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -84,9 +85,6 @@ module.exports = {
                 }
             }
             
-            // Log the choices for debugging
-            console.log(`Inventory autocomplete choices for "${focusedValue}":`, choices);
-            
             // Ensure we're responding with valid choices
             if (choices.length > 0) {
                 await interaction.respond(choices);
@@ -121,7 +119,12 @@ module.exports = {
                 );
                 
                 if (playerResult.rows.length === 0) {
-                    return await interaction.editReply('❌ No player found with that Discord ID.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Player Not Found',
+                            'No player found with that Discord ID. Make sure they have joined a guild using `/join`.'
+                        )]
+                    });
                 }
                 
                 playerId = playerResult.rows[0].player_id;
@@ -138,7 +141,12 @@ module.exports = {
                 );
                 
                 if (addressResult.rows.length === 0) {
-                    return await interaction.editReply('❌ No player found with that wallet address.');
+                    return await interaction.editReply({ 
+                        embeds: [createWarningEmbed(
+                            'Address Not Found',
+                            'No player found with that wallet address.'
+                        )]
+                    });
                 }
                 
                 playerId = addressResult.rows[0].player_id;
@@ -222,8 +230,8 @@ module.exports = {
 
             return await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error in inventory command:', error);
-            return await interaction.editReply('❌ There was an error fetching the inventory information. Please try again later.');
+            const { embed } = handleError(error, 'inventory command', interaction);
+            return await interaction.editReply({ embeds: [embed] });
         }
     }
 }; 

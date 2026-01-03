@@ -344,6 +344,54 @@ const fetchStructData = {
             WHERE id = $1`,
             [id]
         );
+    },
+
+    async infusion(id) {
+        return await db.query(
+            `SELECT
+                infusion.id,
+                infusion.reactor_id,
+                structs.UNIT_DISPLAY_FORMAT(infusion.amount_p, infusion.denom) as amount,
+                infusion.denom,
+                infusion.start_block,
+                infusion.end_block,
+                (infusion.end_block - infusion.start_block) as duration,
+                infusion.owner,
+                reactor.validator as reactor_validator
+            FROM structs.infusion
+            LEFT JOIN structs.reactor ON reactor.id = infusion.reactor_id
+            WHERE infusion.id = $1`,
+            [id]
+        );
+    },
+
+    async address(address) {
+        return await db.query(
+            `SELECT
+                player_address.address,
+                player_address.player_id,
+                player_meta.username,
+                (SELECT player_discord.discord_username FROM structs.player_discord WHERE player_discord.player_id = player_address.player_id) as discord_username,
+                (SELECT guild_meta.name FROM structs.guild_meta WHERE guild_meta.id = player.guild_id) as guild_name,
+                (SELECT guild_meta.tag FROM structs.guild_meta WHERE guild_meta.id = player.guild_id) as guild_tag,
+                player.guild_id,
+                player.substation_id,
+                player.planet_id,
+                player.fleet_id,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='ore'),0),'ore') as ore,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0),'milliwatt') as load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as structs_load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0),'milliwatt') as capacity,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt') as connection_capacity,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='load'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='structsLoad'),0),'milliwatt') as total_load,
+                structs.UNIT_DISPLAY_FORMAT(COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.id and grid.attribute_type='capacity'),0) + COALESCE((SELECT grid.val FROM structs.grid WHERE grid.object_id=player.substation_id and grid.attribute_type='connectionCapacity'),0),'milliwatt')  as total_capacity,
+                player.primary_address
+            FROM structs.player_address
+            LEFT JOIN structs.player ON player.id = player_address.player_id
+            LEFT JOIN structs.player_meta ON player.id = player_meta.id
+            WHERE player_address.address = $1`,
+            [address]
+        );
     }
 };
 
