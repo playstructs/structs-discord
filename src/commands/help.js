@@ -3,11 +3,23 @@ const { EmbedBuilder } = require('discord.js');
 const { EMOJIS } = require('../constants/emojis');
 const { handleError } = require('../utils/errors');
 
+/**
+ * Help command module
+ * @module commands/help
+ * @description Displays all available commands and their descriptions
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('Display all available commands and their descriptions'),
 
+    /**
+     * Execute handler for help command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -59,7 +71,8 @@ module.exports = {
                         name: `${EMOJIS.CURRENCY.ALPHA} Energy Market`,
                         value: '`/redeem` - Convert Guild Token to Alpha Matter\n' +
                                '`/offer` - Create resource offers for other players\n' +
-                               '`/buy` - Accept resource offers from providers',
+                               '`/buy` - Accept resource offers from providers\n' +
+                               '`/calculate` - Calculate economic values (refine, energy, agreement cost, token value, capacity)',
                         inline: false
                     },
                     {
@@ -89,6 +102,16 @@ module.exports = {
                                '• `structs.planet.>` - All planet activity\n' +
                                '• `structs.inventory.>` - All inventory transactions\n' +
                                '• `structs.guild.>` - All guild updates',
+                        inline: false
+                    },
+                    {
+                        name: '💻 Developer Resources',
+                        value: '`/dev compendium` - Links to Structs Compendium documentation\n' +
+                               '`/dev repos` - Links to Structs repositories\n' +
+                               '`/dev api` - API documentation and quick reference\n' +
+                               '`/dev schemas` - Entity schemas and data structures\n' +
+                               '`/dev examples` - Code examples and bot implementations\n' +
+                               '`/dev quickstart` - Quick start guide for developers',
                         inline: false
                     }
                 )

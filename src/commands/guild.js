@@ -4,6 +4,11 @@ const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
 const { handleError, createWarningEmbed } = require('../utils/errors');
 
+/**
+ * Guild command module
+ * @module commands/guild
+ * @description Provides guild-related commands including authorization status checks
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('guild')
@@ -20,6 +25,17 @@ module.exports = {
                         .setAutocomplete(true)
                 )),
 
+    /**
+     * Execute handler for guild command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.options.getString - Get string option value
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 

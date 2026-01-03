@@ -1,8 +1,14 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
-const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
+const { handleError, createSuccessEmbed } = require('../utils/errors');
+const { getPlayerId, getPlayerIdWithValidation } = require('../utils/player');
 
+/**
+ * Redeem command module
+ * @module commands/redeem
+ * @description Allows players to redeem guild tokens from the guild bank
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('redeem')
@@ -19,6 +25,17 @@ module.exports = {
                 .setDescription('Amount to redeem')
                 .setRequired(true)),
 
+    /**
+     * Execute handler for redeem command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option value ('denom')
+     * @param {Function} interaction.options.getNumber - Get number option value ('amount')
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -26,21 +43,17 @@ module.exports = {
             const denom = interaction.options.getString('denom');
             const amount = interaction.options.getNumber('amount');
 
-            // Get player ID from discord ID
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            const registrationError = validatePlayerRegistration(
-                playerResult,
+            // Get player ID with validation
+            const playerResult = await getPlayerIdWithValidation(
+                interaction.user.id,
                 'Player not found. Please ensure you are registered using `/join`.'
             );
-            if (registrationError) {
-                return await interaction.editReply({ embeds: [registrationError] });
+            
+            if (playerResult.error) {
+                return await interaction.editReply({ embeds: [playerResult.error] });
             }
 
-            const playerId = playerResult.rows[0].player_id;
+            const playerId = playerResult.playerId;
 
             // Execute the redeem transaction
             await db.query(
@@ -64,21 +77,25 @@ module.exports = {
         }
     },
 
+    /**
+     * Autocomplete handler for redeem command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
 
         try {
-            // Get player ID from discord ID
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            if (playerResult.rows.length === 0) {
+            // Get player ID (no validation needed for autocomplete)
+            const playerId = await getPlayerId(interaction.user.id);
+            
+            if (!playerId) {
                 return await interaction.respond([]);
             }
-
-            const playerId = playerResult.rows[0].player_id;
 
             const choices = [];
 

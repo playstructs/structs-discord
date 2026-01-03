@@ -1,8 +1,14 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
-const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
+const { handleError, createSuccessEmbed, createWarningEmbed } = require('../utils/errors');
+const { getPlayerId, getPlayerIdWithValidation, getPlayerIdFromAddress, getPlayerIdFromUsername } = require('../utils/player');
 
+/**
+ * Allocation command module
+ * @module commands/allocation
+ * @description Manages resource allocations including create, connect, disconnect, and transfer operations
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('allocation')
@@ -86,23 +92,29 @@ module.exports = {
                         .setAutocomplete(true)
                 )),
 
+    /**
+     * Autocomplete handler for allocation command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.options.getFocused - Get focused option with name
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const focusedOption = interaction.options.getFocused(true);
         const subcommand = interaction.options.getSubcommand();
 
         try {
-            // Get player ID from Discord username
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            if (playerResult.rows.length === 0) {
+            // Get player ID (no validation needed for autocomplete)
+            const playerId = await getPlayerId(interaction.user.id);
+            
+            if (!playerId) {
                 return;
             }
-
-            const playerId = playerResult.rows[0].player_id;
 
             if (subcommand === 'create') {
                 if (focusedOption.name === 'source') {
@@ -280,22 +292,33 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for allocation command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.options.getString - Get string option values
+     */
     async execute(interaction) {
         await interaction.deferReply();
         const subcommand = interaction.options.getSubcommand();
 
         try {
-            // Get player ID from Discord username
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
+            // Get player ID with validation
+            const playerResult = await getPlayerIdWithValidation(
+                interaction.user.id,
+                'You are not registered as a player. Please use `/join` to join a guild first.'
             );
-
-            if (playerResult.rows.length === 0) {
-                return await interaction.editReply('You are not registered as a player. Please join a guild first.');
+            
+            if (playerResult.error) {
+                return await interaction.editReply({ embeds: [playerResult.error] });
             }
 
-            const playerId = playerResult.rows[0].player_id;
+            const playerId = playerResult.playerId;
 
             if (subcommand === 'create') {
                 const source = interaction.options.getString('source');
@@ -307,41 +330,66 @@ module.exports = {
                 let destinationAddress;
                 
                 if (destination.startsWith('<@')) {
-                    // It's a Discord mention
-                    const discordUsername = destination.replace(/[<@!>]/g, '');
-                    const discordResult = await db.query(
-                        'SELECT primary_address from player WHERE id in (SELECT player_id FROM structs.player_discord WHERE discord_username = $1)',
-                        [discordUsername]
-                    );
+                    // It's a Discord mention - extract Discord ID
+                    const discordId = destination.replace(/[<@!>]/g, '');
+                    const foundPlayerId = await getPlayerId(discordId);
                     
-                    if (discordResult.rows.length === 0) {
-                        return await interaction.editReply('Recipient not found or not registered.');
+                    if (!foundPlayerId) {
+                        return await interaction.editReply({ 
+                            embeds: [createWarningEmbed(
+                                'Recipient Not Found',
+                                'The recipient is not registered. Make sure they have joined a guild using `/join`.'
+                            )]
+                        });
                     }
                     
-                    destinationAddress = discordResult.rows[0].primary_address;
-                } else if (destination.startsWith('structs')) {
-                    // It's a wallet address
+                    // Get primary address for the player
                     const addressResult = await db.query(
-                        'SELECT player_id FROM structs.player_address WHERE address = $1',
-                        [destination]
+                        'SELECT primary_address FROM structs.player WHERE id = $1',
+                        [foundPlayerId]
                     );
                     
                     if (addressResult.rows.length === 0) {
-                        return await interaction.editReply('Recipient not found or not registered.');
+                        return await interaction.editReply({ 
+                            embeds: [createWarningEmbed(
+                                'Address Not Found',
+                                'Could not find address for the recipient player.'
+                            )]
+                        });
+                    }
+                    
+                    destinationAddress = addressResult.rows[0].primary_address;
+                } else if (destination.startsWith('structs')) {
+                    // It's a wallet address
+                    const foundPlayerId = await getPlayerIdFromAddress(destination);
+                    
+                    if (!foundPlayerId) {
+                        return await interaction.editReply({ 
+                            embeds: [createWarningEmbed(
+                                'Address Not Found',
+                                'The recipient address was not found in the system.'
+                            )]
+                        });
                     }
                     
                     destinationAddress = destination;
                 } else {
-                    const discordResult = await db.query(
-                        'SELECT primary_address from player WHERE id = $1',
+                    // Assume it's a player ID - get primary address
+                    const addressResult = await db.query(
+                        'SELECT primary_address FROM structs.player WHERE id = $1',
                         [destination]
                     );
                     
-                    if (discordResult.rows.length === 0) {
-                        return await interaction.editReply('Recipient not found or not registered.');
+                    if (addressResult.rows.length === 0) {
+                        return await interaction.editReply({ 
+                            embeds: [createWarningEmbed(
+                                'Recipient Not Found',
+                                'The recipient player ID was not found in the system.'
+                            )]
+                        });
                     }
                     
-                    destinationAddress = discordResult.rows[0].primary_address;
+                    destinationAddress = addressResult.rows[0].primary_address;
                 }
 
                 // Create the allocation transaction

@@ -6,11 +6,24 @@ const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
 const { handleError, createWarningEmbed } = require('../utils/errors');
 
+/**
+ * Station command module
+ * @module commands/station
+ * @description Displays player profile, information, and inventory balances
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('station')
         .setDescription('View your player profile and information'),
 
+    /**
+     * Execute handler for station command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 

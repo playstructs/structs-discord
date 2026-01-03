@@ -3,6 +3,11 @@ const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { handleError, createWarningEmbed } = require('../utils/errors');
 
+/**
+ * Top command module
+ * @module commands/top
+ * @description Displays leaderboards for players and guilds
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('top')
@@ -83,6 +88,17 @@ module.exports = {
                         )
                 )),
 
+    /**
+     * Execute handler for top command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand ('players' or 'guilds')
+     * @param {Function} interaction.options.getString - Get string option value ('order_by')
+     */
     async execute(interaction) {
         await interaction.deferReply();
 

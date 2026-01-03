@@ -4,6 +4,12 @@ const natsService = require('../services/nats');
 const { EMOJIS } = require('../constants/emojis');
 const { handleError, createSuccessEmbed, createInfoEmbed } = require('../utils/errors');
 
+/**
+ * Grass command module
+ * @module commands/grass
+ * @description Manages GRASS (Game Real-time Activity Streaming System) event streaming notifications for Discord channels
+ */
+
 // Preset subscription patterns
 const SUBSCRIPTION_PRESETS = {
     'all-grid': { pattern: 'structs.grid.>', description: 'All grid updates (ore, capacity, load, etc.)' },
@@ -114,9 +120,17 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('events')
-                .setDescription('View available event types and patterns')
+                .setDescription('View available event types and patterns'                )
         ),
 
+    /**
+     * Autocomplete handler for grass command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const focusedOption = interaction.options.getFocused(true);
@@ -189,6 +203,19 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for grass command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Object} interaction.channel - Discord channel object
+     * @param {string} interaction.channel.id - Channel ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.options.getString - Get string option values
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 

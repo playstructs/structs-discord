@@ -11,6 +11,7 @@ A Discord bot application for the Structs game ecosystem. This bot provides Disc
 - **Energy Administration**: Manage allocations, substations, and infusions
 - **GRASS Notifications**: Subscribe to game event notifications via NATS
 - **Real-time Updates**: Receive game events through NATS message subscriptions
+- **Developer Resources**: Quick access to [Structs Compendium](https://github.com/playstructs/structs-compendium) and API documentation via `/dev` command
 
 ## Prerequisites
 
@@ -157,6 +158,7 @@ Commands follow a consistent pattern:
 - Verify `DATABASE_URL` is correct
 - Ensure PostgreSQL is running and accessible
 - Check database schema is installed
+- See [Database Schema](docs/DATABASE_SCHEMA.md) for required table structures
 
 ### NATS connection errors
 - NATS is optional - the bot will continue without it

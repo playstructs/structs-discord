@@ -2,8 +2,14 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
-const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
+const { handleError, createSuccessEmbed, createWarningEmbed } = require('../utils/errors');
+const { getPlayerId, getPlayerIdWithValidation } = require('../utils/player');
 
+/**
+ * Send command module
+ * @module commands/send
+ * @description Allows players to send resources (Alpha Matter, guild tokens) to other players via player ID, Discord mention, or wallet address
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('send')
@@ -30,23 +36,27 @@ module.exports = {
                 .setMinValue(0)
         ),
 
+    /**
+     * Autocomplete handler for send command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value and name
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const focusedOption = interaction.options.getFocused(true);
         const choices = [];
         
         try {
-            // Get player ID from Discord username
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            if (playerResult.rows.length === 0) {
+            // Get player ID (no validation needed for autocomplete)
+            const playerId = await getPlayerId(interaction.user.id);
+            
+            if (!playerId) {
                 return await interaction.respond([]);
             }
-
-            const playerId = playerResult.rows[0].player_id;
 
             if (focusedOption.name === 'resource') {
                 // Handle resource autocomplete using the provided SQL query
@@ -168,6 +178,18 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for send command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {string} interaction.user.username - Discord username
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option value
+     * @param {Function} interaction.options.getNumber - Get number option value
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -176,21 +198,17 @@ module.exports = {
             const recipient = interaction.options.getString('to');
             const amount = interaction.options.getNumber('amount');
 
-            // Get the player ID from the Discord username
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            const registrationError = validatePlayerRegistration(
-                playerResult,
+            // Get player ID with validation
+            const playerResult = await getPlayerIdWithValidation(
+                interaction.user.id,
                 'You are not registered. Please use `/join` to register first.'
             );
-            if (registrationError) {
-                return await interaction.editReply({ embeds: [registrationError] });
+            
+            if (playerResult.error) {
+                return await interaction.editReply({ embeds: [playerResult.error] });
             }
 
-            const playerId = playerResult.rows[0].player_id;
+            const playerId = playerResult.playerId;
 
             // Get sender's Discord username
             const senderUsername = interaction.user.username;
@@ -241,12 +259,10 @@ module.exports = {
 
             // Get the recipient's address if we have their ID
             if (!recipientId && recipientAddress) {
-                const addressResult = await db.query(
-                    'SELECT player_id FROM structs.player_address WHERE address = $1 LIMIT 1',
-                    [recipientAddress]
-                );
+                const { getPlayerIdFromAddress } = require('../utils/player');
+                const foundPlayerId = await getPlayerIdFromAddress(recipientAddress);
 
-                if (addressResult.rows.length === 0) {
+                if (!foundPlayerId) {
                     return await interaction.editReply({ 
                         embeds: [createWarningEmbed(
                             'Address Not Found',
@@ -255,7 +271,7 @@ module.exports = {
                     });
                 }
 
-                recipientId = addressResult.rows[0].player_id;
+                recipientId = foundPlayerId;
             }
 
             // Execute the send transaction

@@ -1,11 +1,16 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
-const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
-const { getPlayerId } = require('../utils/player');
+const { handleError, createSuccessEmbed, createWarningEmbed } = require('../utils/errors');
+const { getPlayerId, getPlayerIdWithValidation } = require('../utils/player');
 const { formatStructChoice, getStructAttribute } = require('../utils/structs');
 const crypto = require('crypto');
 
+/**
+ * Structure management command module
+ * @module commands/struct
+ * @description Comprehensive command for managing structures including define, build, activate, mine, refine, attack, defense, and stealth operations
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('struct')
@@ -207,6 +212,18 @@ module.exports = {
                     .setAutocomplete(true)
             )),
 
+    /**
+     * Autocomplete handler for struct command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.options.getFocused - Get focused option with name
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.options.getString - Get string option value
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const focusedOption = interaction.options.getFocused(true);
@@ -540,26 +557,34 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for struct command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.options.getString - Get string option value
+     * @param {Function} interaction.options.getInteger - Get integer option value
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
         const subcommand = interaction.options.getSubcommand();
 
         try {
-            // Get player ID from Discord username
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            const registrationError = validatePlayerRegistration(
-                playerResult,
+            // Get player ID with validation
+            const playerResult = await getPlayerIdWithValidation(
+                interaction.user.id,
                 'You are not registered as a player. Please use `/join` to join a guild first.'
             );
-            if (registrationError) {
-                return await interaction.editReply({ embeds: [registrationError] });
+            
+            if (playerResult.error) {
+                return await interaction.editReply({ embeds: [playerResult.error] });
             }
 
-            const playerId = playerResult.rows[0].player_id;
+            const playerId = playerResult.playerId;
 
             if (subcommand === 'define') {
                 const category = interaction.options.getString('category');

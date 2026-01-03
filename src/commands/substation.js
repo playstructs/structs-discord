@@ -1,8 +1,14 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
-const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
+const { handleError, createSuccessEmbed } = require('../utils/errors');
+const { getPlayerId, getPlayerIdWithValidation } = require('../utils/player');
 
+/**
+ * Substation command module
+ * @module commands/substation
+ * @description Manages substations including creation, player connections/disconnections, and controller transfers
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('substation')
@@ -48,6 +54,17 @@ module.exports = {
                         .setAutocomplete(true)
                 )),
 
+    /**
+     * Autocomplete handler for substation command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.options.getFocused - Get focused option with name
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const subcommand = interaction.options.getSubcommand();
@@ -55,17 +72,12 @@ module.exports = {
 
         try {
             if (subcommand === 'create') {
-                // Get player ID from discord ID
-                const playerResult = await db.query(
-                    'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                    [interaction.user.id]
-                );
-
-                if (playerResult.rows.length === 0) {
+                // Get player ID (no validation needed for autocomplete)
+                const playerId = await getPlayerId(interaction.user.id);
+                
+                if (!playerId) {
                     return await interaction.respond([]);
                 }
-
-                const playerId = playerResult.rows[0].player_id;
 
                 // Autocomplete for allocation selection
                 const result = await db.query(
@@ -92,17 +104,12 @@ module.exports = {
                 const focusedOption = interaction.options.getFocused(true);
                 
                 if (focusedOption.name === 'substation') {
-                    // Get player ID from discord ID
-                    const playerResult = await db.query(
-                        'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                        [interaction.user.id]
-                    );
-
-                    if (playerResult.rows.length === 0) {
+                    // Get player ID (no validation needed for autocomplete)
+                    const playerId = await getPlayerId(interaction.user.id);
+                    
+                    if (!playerId) {
                         return await interaction.respond([]);
                     }
-
-                    const playerId = playerResult.rows[0].player_id;
 
                     // Autocomplete for substation selection
                     const result = await db.query(
@@ -127,17 +134,12 @@ module.exports = {
                         value: row.value
                     })));
                 } else if (focusedOption.name === 'player') {
-                    // Get player ID from discord ID
-                    const playerResult = await db.query(
-                        'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                        [interaction.user.id]
-                    );
-
-                    if (playerResult.rows.length === 0) {
+                    // Get player ID (no validation needed for autocomplete)
+                    const playerId = await getPlayerId(interaction.user.id);
+                    
+                    if (!playerId) {
                         return await interaction.respond([]);
                     }
-
-                    const playerId = playerResult.rows[0].player_id;
 
                     // Autocomplete for player selection
                     const result = await db.query(
@@ -157,17 +159,12 @@ module.exports = {
                     })));
                 }
             } else if (subcommand === 'player-disconnect') {
-                // Get player ID from discord ID
-                const playerResult = await db.query(
-                    'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                    [interaction.user.id]
-                );
-
-                if (playerResult.rows.length === 0) {
+                // Get player ID (no validation needed for autocomplete)
+                const playerId = await getPlayerId(interaction.user.id);
+                
+                if (!playerId) {
                     return await interaction.respond([]);
                 }
-
-                const playerId = playerResult.rows[0].player_id;
 
                 // Autocomplete for player selection
                 const result = await db.query(
@@ -194,6 +191,17 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for substation command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.options.getString - Get string option values
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
         const subcommand = interaction.options.getSubcommand();
@@ -203,21 +211,17 @@ module.exports = {
                 case 'create': {
                     const allocationId = interaction.options.getString('allocation');
 
-                    // Get player ID from discord ID
-                    const playerResult = await db.query(
-                        'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                        [interaction.user.id]
-                    );
-
-                    const registrationError = validatePlayerRegistration(
-                        playerResult,
+                    // Get player ID with validation
+                    const playerResult = await getPlayerIdWithValidation(
+                        interaction.user.id,
                         'Player not found. Please ensure you are registered using `/join`.'
                     );
-                    if (registrationError) {
-                        return await interaction.editReply({ embeds: [registrationError] });
+                    
+                    if (playerResult.error) {
+                        return await interaction.editReply({ embeds: [playerResult.error] });
                     }
 
-                    const playerId = playerResult.rows[0].player_id;
+                    const playerId = playerResult.playerId;
 
                     // Create the substation
                     await db.query(
@@ -240,21 +244,17 @@ module.exports = {
                     const substationId = interaction.options.getString('substation');
                     const targetPlayerId = interaction.options.getString('player');
 
-                    // Get player ID from discord ID
-                    const playerResult = await db.query(
-                        'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                        [interaction.user.id]
-                    );
-
-                    const registrationError = validatePlayerRegistration(
-                        playerResult,
+                    // Get player ID with validation
+                    const playerResult = await getPlayerIdWithValidation(
+                        interaction.user.id,
                         'Player not found. Please ensure you are registered using `/join`.'
                     );
-                    if (registrationError) {
-                        return await interaction.editReply({ embeds: [registrationError] });
+                    
+                    if (playerResult.error) {
+                        return await interaction.editReply({ embeds: [playerResult.error] });
                     }
 
-                    const playerId = playerResult.rows[0].player_id;
+                    const playerId = playerResult.playerId;
 
                     // Connect player to substation
                     await db.query(
@@ -277,21 +277,17 @@ module.exports = {
                 case 'player-disconnect': {
                     const targetPlayerId = interaction.options.getString('player');
 
-                    // Get player ID from discord ID
-                    const playerResult = await db.query(
-                        'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                        [interaction.user.id]
-                    );
-
-                    const registrationError = validatePlayerRegistration(
-                        playerResult,
+                    // Get player ID with validation
+                    const playerResult = await getPlayerIdWithValidation(
+                        interaction.user.id,
                         'Player not found. Please ensure you are registered using `/join`.'
                     );
-                    if (registrationError) {
-                        return await interaction.editReply({ embeds: [registrationError] });
+                    
+                    if (playerResult.error) {
+                        return await interaction.editReply({ embeds: [playerResult.error] });
                     }
 
-                    const playerId = playerResult.rows[0].player_id;
+                    const playerId = playerResult.playerId;
 
                     // Disconnect player from substation
                     await db.query(

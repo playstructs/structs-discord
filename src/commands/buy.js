@@ -2,6 +2,11 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const db = require('../database');
 const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
 
+/**
+ * Buy command module
+ * @module commands/buy
+ * @description Allows players to accept resource offers from providers
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('buy')
@@ -26,6 +31,18 @@ module.exports = {
                 .setRequired(true)
         ),
 
+    /**
+     * Execute handler for buy command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option value ('offer')
+     * @param {Function} interaction.options.getNumber - Get number option value ('capacity')
+     * @param {Function} interaction.options.getInteger - Get integer option value ('duration')
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 

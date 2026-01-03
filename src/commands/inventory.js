@@ -1,8 +1,14 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
-const { handleError } = require('../utils/errors');
+const { handleError, createWarningEmbed } = require('../utils/errors');
+const { getPlayerId, getPlayerIdFromAddress } = require('../utils/player');
 
+/**
+ * Inventory command module
+ * @module commands/inventory
+ * @description Allows players to view their own or another player's inventory (resources, tokens, balances)
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('inventory')
@@ -15,6 +21,13 @@ module.exports = {
                 .setAutocomplete(true)
         ),
 
+    /**
+     * Autocomplete handler for inventory command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const choices = [];
@@ -103,6 +116,16 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for inventory command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option value
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -113,13 +136,10 @@ module.exports = {
             // Check if it's a Discord mention
             if (playerIdentifier.startsWith('<@')) {
                 const discordId = playerIdentifier.replace(/[<@!>]/g, '');
-                const playerResult = await db.query(
-                    'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                    [discordId]
-                );
+                const foundPlayerId = await getPlayerId(discordId);
                 
-                if (playerResult.rows.length === 0) {
-                    return await interaction.editReply({ 
+                if (!foundPlayerId) {
+                    return await interaction.editReply({
                         embeds: [createWarningEmbed(
                             'Player Not Found',
                             'No player found with that Discord ID. Make sure they have joined a guild using `/join`.'
@@ -127,7 +147,7 @@ module.exports = {
                     });
                 }
                 
-                playerId = playerResult.rows[0].player_id;
+                playerId = foundPlayerId;
             } 
             // Check if it's a player ID
             else if (playerIdentifier.includes('-')) {
@@ -135,12 +155,9 @@ module.exports = {
             } 
             // Check if it's a wallet address
             else {
-                const addressResult = await db.query(
-                    'SELECT player_id FROM structs.player_address WHERE address = $1',
-                    [playerIdentifier]
-                );
+                const foundPlayerId = await getPlayerIdFromAddress(playerIdentifier);
                 
-                if (addressResult.rows.length === 0) {
+                if (!foundPlayerId) {
                     return await interaction.editReply({ 
                         embeds: [createWarningEmbed(
                             'Address Not Found',
@@ -149,7 +166,7 @@ module.exports = {
                     });
                 }
                 
-                playerId = addressResult.rows[0].player_id;
+                playerId = foundPlayerId;
             }
 
             // Fetch player inventory data
@@ -184,12 +201,8 @@ module.exports = {
             );
 
             // Get player info for the embed
-            const playerInfo = await db.query(
-                'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
-                [playerId]
-            );
-
-            const username = playerInfo.rows.length > 0 ? playerInfo.rows[0].discord_username : 'Unknown Player';
+            const { getDiscordUsername } = require('../utils/player');
+            const username = await getDiscordUsername(playerId) || 'Unknown Player';
 
             // Create the embed
             const embed = new EmbedBuilder()

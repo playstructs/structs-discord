@@ -3,6 +3,11 @@ const db = require('../database');
 const crypto = require('crypto');
 const { handleError, createSuccessEmbed, validatePlayerRegistration, createWarningEmbed } = require('../utils/errors');
 
+/**
+ * Raid command module
+ * @module commands/raid
+ * @description Allows players to complete planet raids using proof-of-work
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('raid')
@@ -15,6 +20,16 @@ module.exports = {
                 .setMinValue(1)
         ),
 
+    /**
+     * Execute handler for raid command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getInteger - Get integer option value ('nonce')
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 

@@ -206,6 +206,24 @@ class NATSService {
                 return;
             }
 
+            // Log channel info for debugging
+            console.log(`Channel type: ${channel.type}, isTextBased: ${channel.isTextBased()}, isThread: ${channel.isThread || false}`);
+            
+            // Check permissions more thoroughly
+            if (channel.isTextBased()) {
+                const permissions = channel.permissionsFor(this.discordClient.user);
+                if (permissions) {
+                    console.log(`Bot permissions for channel ${channelId}:`, {
+                        SendMessages: permissions.has('SendMessages'),
+                        ViewChannel: permissions.has('ViewChannel'),
+                        EmbedLinks: permissions.has('EmbedLinks'),
+                        ReadMessageHistory: permissions.has('ReadMessageHistory')
+                    });
+                } else {
+                    console.warn(`Could not determine permissions for channel ${channelId} - bot may not be in the server`);
+                }
+            }
+
             console.log('Raw message data:', msg.data);
             const data = JSON.parse(msg.data);
             console.log('Parsed message data:', JSON.stringify(data, null, 2));
@@ -255,9 +273,59 @@ class NATSService {
             // Send embed if created, otherwise skip
             if (embed) {
                 try {
+                    // For threads, we need to check parent channel permissions
+                    if (channel.isThread()) {
+                        const parentChannel = channel.parent;
+                        if (parentChannel) {
+                            const parentPermissions = parentChannel.permissionsFor(this.discordClient.user);
+                            if (!parentPermissions || !parentPermissions.has('SendMessagesInThreads')) {
+                                console.warn(`Bot lacks SendMessagesInThreads permission for thread ${channelId} in parent ${parentChannel.id}`);
+                                return;
+                            }
+                        }
+                    } else if (channel.isTextBased()) {
+                        // For regular text channels
+                        const permissions = channel.permissionsFor(this.discordClient.user);
+                        if (!permissions) {
+                            console.warn(`Could not determine permissions for channel ${channelId} - bot may not be in the server`);
+                            return;
+                        }
+                        if (!permissions.has('SendMessages')) {
+                            console.warn(`Bot lacks SendMessages permission for channel ${channelId}`);
+                            return;
+                        }
+                        if (!permissions.has('EmbedLinks')) {
+                            console.warn(`Bot lacks EmbedLinks permission for channel ${channelId}`);
+                            return;
+                        }
+                    } else {
+                        console.warn(`Channel ${channelId} is not a text-based channel (type: ${channel.type})`);
+                        return;
+                    }
+
                     await channel.send({ embeds: [embed] });
+                    console.log(`Successfully sent message to channel ${channelId}`);
                 } catch (err) {
-                    console.error('Error sending embed to Discord:', err);
+                    // Handle specific Discord API errors
+                    if (err.code === 50001) {
+                        // Missing Access - bot doesn't have access to channel
+                        console.warn(`Bot lacks access to channel ${channelId} (Missing Access - 50001). This may be a thread or the bot was removed from the server.`);
+                        console.warn(`Channel type: ${channel.type}, isThread: ${channel.isThread || false}`);
+                    } else if (err.code === 50013) {
+                        // Missing Permissions
+                        console.warn(`Bot lacks required permissions for channel ${channelId} (Missing Permissions - 50013)`);
+                    } else if (err.code === 10003) {
+                        // Unknown Channel - channel was deleted
+                        console.warn(`Channel ${channelId} no longer exists (Unknown Channel - 10003). Consider removing subscription.`);
+                    } else {
+                        console.error(`Error sending embed to Discord channel ${channelId}:`, {
+                            code: err.code,
+                            message: err.message,
+                            status: err.status,
+                            channelType: channel.type,
+                            isThread: channel.isThread || false
+                        });
+                    }
                 }
             }
         } catch (error) {

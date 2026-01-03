@@ -6,6 +6,11 @@ const db = require('../database');
 const { EMOJIS } = require('../constants/emojis');
 const { handleError, createWarningEmbed } = require('../utils/errors');
 
+/**
+ * Search command module
+ * @module commands/search
+ * @description Provides search functionality for players, guilds, structures, and addresses
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('search')
@@ -18,6 +23,13 @@ module.exports = {
                 .setAutocomplete(true)
         ),
 
+    /**
+     * Autocomplete handler for search command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const choices = [];
@@ -112,6 +124,16 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for search command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option value ('query')
+     */
     async execute(interaction) {
         await interaction.deferReply();
 

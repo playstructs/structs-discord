@@ -1,39 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const { fetchPlayerData } = require('../queries/structs');
 const db = require('../database');
-
-// Helper function to get Discord username from player ID
-const getDiscordUsername = async (playerId) => {
-    try {
-        const result = await db.query(
-            'SELECT discord_username FROM structs.player_discord WHERE player_id = $1',
-            [playerId]
-        );
-        if (result.rows.length > 0) {
-            return result.rows[0].discord_username;
-        }
-        return null;
-    } catch (error) {
-        console.error('Error fetching Discord username:', error);
-        return null;
-    }
-};
-
-const getPlayerIdFromAddress = async (address) => {
-    try {
-        const result = await db.query(
-            'SELECT player_id FROM structs.player_address WHERE address = $1',
-            [address]
-        );
-        if (result.rows.length > 0) {
-            return result.rows[0].player_id;
-        }
-        return null;
-    } catch (error) {
-        console.error('Error fetching player ID:', error);
-        return null;
-    }
-};
+const { getDiscordUsername, getPlayerIdFromAddress } = require('../utils/player');
 
 const createPlayerEmbed = async (player) => {
     const embed = new EmbedBuilder()

@@ -1,7 +1,13 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const db = require('../database');
-const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
+const { handleError, createSuccessEmbed } = require('../utils/errors');
+const { getPlayerId } = require('../utils/player');
 
+/**
+ * Offer command module
+ * @module commands/offer
+ * @description Allows players to create resource offers through substations
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('offer')
@@ -74,23 +80,27 @@ module.exports = {
                 .setRequired(true)
         ),
 
+    /**
+     * Autocomplete handler for offer command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const focusedOption = interaction.options.getFocused(true);
         const choices = [];
         
         try {
-            // Get player ID from Discord username
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            if (playerResult.rows.length === 0) {
+            // Get player ID (no validation needed for autocomplete)
+            const playerId = await getPlayerId(interaction.user.id);
+            
+            if (!playerId) {
                 return await interaction.respond([]);
             }
-
-            const playerId = playerResult.rows[0].player_id;
 
             if (focusedOption.name === 'substation') {
                 // Handle substation autocomplete
@@ -169,6 +179,18 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for offer command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option values
+     * @param {Function} interaction.options.getNumber - Get number option values
+     * @param {Function} interaction.options.getInteger - Get integer option values
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 

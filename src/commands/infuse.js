@@ -1,7 +1,13 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const db = require('../database');
-const { handleError, createSuccessEmbed, validatePlayerRegistration } = require('../utils/errors');
+const { handleError, createSuccessEmbed } = require('../utils/errors');
+const { getPlayerIdWithValidation } = require('../utils/player');
 
+/**
+ * Infuse command module
+ * @module commands/infuse
+ * @description Allows players to infuse power (Alpha Matter) into reactors, guilds, or power-generating structures
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('infuse')
@@ -27,6 +33,17 @@ module.exports = {
                     { name: 'alpha', value: 'alpha' }
                 )),
 
+    /**
+     * Execute handler for infuse command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option value
+     * @param {Function} interaction.options.getNumber - Get number option value
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -35,21 +52,17 @@ module.exports = {
             const amount = interaction.options.getNumber('amount');
             const denom = interaction.options.getString('denom');
 
-            // Get player ID from discord ID
-            const playerResult = await db.query(
-                'SELECT player_id FROM structs.player_discord WHERE discord_id = $1',
-                [interaction.user.id]
-            );
-
-            const registrationError = validatePlayerRegistration(
-                playerResult,
+            // Get player ID with validation
+            const playerResult = await getPlayerIdWithValidation(
+                interaction.user.id,
                 'Player not found. Please ensure you are registered using `/join`.'
             );
-            if (registrationError) {
-                return await interaction.editReply({ embeds: [registrationError] });
+            
+            if (playerResult.error) {
+                return await interaction.editReply({ embeds: [playerResult.error] });
             }
 
-            const playerId = playerResult.rows[0].player_id;
+            const playerId = playerResult.playerId;
 
             // Execute the infuse transaction
             await db.query(
@@ -74,6 +87,13 @@ module.exports = {
         }
     },
 
+    /**
+     * Autocomplete handler for infuse command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
 

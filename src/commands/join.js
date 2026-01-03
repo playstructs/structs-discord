@@ -3,6 +3,11 @@ const db = require('../database');
 const { handleError, createSuccessEmbed, createWarningEmbed } = require('../utils/errors');
 const { EMOJIS } = require('../constants/emojis');
 
+/**
+ * Join command module
+ * @module commands/join
+ * @description Allows players to join a guild and register as a player
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('join')
@@ -15,6 +20,13 @@ module.exports = {
                 .setAutocomplete(true)
         ),
 
+    /**
+     * Autocomplete handler for join command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const choices = [];
@@ -76,6 +88,17 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for join command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {string} interaction.user.username - Discord username
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getString - Get string option value ('guild')
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 

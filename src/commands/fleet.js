@@ -3,6 +3,11 @@ const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { handleError, createSuccessEmbed, createWarningEmbed, validatePlayerRegistration } = require('../utils/errors');
 
+/**
+ * Fleet management command module
+ * @module commands/fleet
+ * @description Manages fleet deployment and return operations
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('fleet')
@@ -23,6 +28,14 @@ module.exports = {
                 .setName('return')
                 .setDescription('Return your fleet to your planet')),
 
+    /**
+     * Autocomplete handler for fleet command
+     * @param {Object} interaction - Discord autocomplete interaction
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getFocused - Get focused option value
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand
+     * @param {Function} interaction.respond - Respond with autocomplete choices
+     */
     async autocomplete(interaction) {
         const focusedValue = interaction.options.getFocused();
         const subcommand = interaction.options.getSubcommand();
@@ -59,6 +72,17 @@ module.exports = {
         }
     },
 
+    /**
+     * Execute handler for fleet command
+     * @param {Object} interaction - Discord slash command interaction
+     * @param {Object} interaction.user - Discord user object
+     * @param {string} interaction.user.id - Discord user ID
+     * @param {Function} interaction.deferReply - Defer the reply
+     * @param {Function} interaction.editReply - Edit the deferred reply
+     * @param {Object} interaction.options - Interaction options
+     * @param {Function} interaction.options.getSubcommand - Get selected subcommand ('deploy' or 'return')
+     * @param {Function} interaction.options.getString - Get string option value
+     */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
         const subcommand = interaction.options.getSubcommand();
