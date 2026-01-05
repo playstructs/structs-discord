@@ -61,11 +61,11 @@ class CheatsheetBuilder {
         
         // Replace ambit icons
         for (const [ambit, emoji] of Object.entries(AMBIT_ICONS)) {
-            result = result.replace(new RegExp(`<i class="[^"]*sui-icon-${ambit}[^"]*"></i>`, 'g'), emoji);
+            result = result.replace(new RegExp(`<i class="[^"]*sui-icon-${ambit}[^"]*"><\/i>`, 'g'), emoji);
         }
         
         // Remove any remaining icon tags
-        result = result.replace(/<i class="[^"]*sui-icon[^"]*"></i>/g, '');
+        result = result.replace(/<i class="[^"]*sui-icon[^"]*"><\/i>/g, '');
         
         return result;
     }
