@@ -27,7 +27,7 @@
     "dotenv": "^16.4.7",
     "nats": "^2.16.0",
     "pg": "^8.11.3",
-    "puppeteer": "^21.6.1"
+    "puppeteer": "^24.15.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3",

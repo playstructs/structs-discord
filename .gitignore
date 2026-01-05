@@ -2,6 +2,6 @@ node_modules
 .env
 config.json
 # Universal Agent System
-.agents/
-.repo-state/
+.agents
+.repo-state
 agents.md
