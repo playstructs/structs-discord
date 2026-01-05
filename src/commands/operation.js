@@ -4,6 +4,8 @@ const { EMOJIS } = require('../constants/emojis');
 const { handleError, createWarningEmbed } = require('../utils/errors');
 const { getPlayerIdWithValidation } = require('../utils/player');
 const { getActiveOperations } = require('../utils/status');
+const { createEnhancedEmbed, createSeparatorField, EMBED_COLORS } = require('../utils/embedFormatter');
+const { formatNumber, createSeparator } = require('../utils/designSystem');
 
 /**
  * Operation command module
@@ -83,18 +85,15 @@ module.exports = {
                     grouped[op.type].push(op);
                 }
 
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STATUS.INFO} Active Operations`)
-                    .setColor(0x0099ff)
-                    .setTimestamp();
+                const fields = [];
 
                 // Add build operations
                 if (grouped.build.length > 0) {
                     const buildList = grouped.build.map(op => 
                         `• **${op.entityId}** ${op.entityType}\n` +
-                        `  Started: Block ${op.startBlock} | Elapsed: ${op.blocksElapsed || 'N/A'} blocks`
+                        `  📍 Started: Block ${formatNumber(op.startBlock)} | ⏱️ Elapsed: ${formatNumber(op.blocksElapsed || 0)} blocks`
                     ).join('\n\n');
-                    embed.addFields({
+                    fields.push({
                         name: `🏗️ Building (${grouped.build.length})`,
                         value: buildList,
                         inline: false
@@ -103,11 +102,12 @@ module.exports = {
 
                 // Add mining operations
                 if (grouped.mine.length > 0) {
+                    if (fields.length > 0) fields.push(createSeparatorField());
                     const mineList = grouped.mine.map(op => 
                         `• **${op.entityId}** ${op.entityType}\n` +
-                        `  Started: Block ${op.startBlock} | Elapsed: ${op.blocksElapsed || 'N/A'} blocks`
+                        `  📍 Started: Block ${formatNumber(op.startBlock)} | ⏱️ Elapsed: ${formatNumber(op.blocksElapsed || 0)} blocks`
                     ).join('\n\n');
-                    embed.addFields({
+                    fields.push({
                         name: `⛏️ Mining (${grouped.mine.length})`,
                         value: mineList,
                         inline: false
@@ -116,11 +116,12 @@ module.exports = {
 
                 // Add refining operations
                 if (grouped.refine.length > 0) {
+                    if (fields.length > 0) fields.push(createSeparatorField());
                     const refineList = grouped.refine.map(op => 
                         `• **${op.entityId}** ${op.entityType}\n` +
-                        `  Started: Block ${op.startBlock} | Elapsed: ${op.blocksElapsed || 'N/A'} blocks`
+                        `  📍 Started: Block ${formatNumber(op.startBlock)} | ⏱️ Elapsed: ${formatNumber(op.blocksElapsed || 0)} blocks`
                     ).join('\n\n');
-                    embed.addFields({
+                    fields.push({
                         name: `🔧 Refining (${grouped.refine.length})`,
                         value: refineList,
                         inline: false
@@ -129,18 +130,24 @@ module.exports = {
 
                 // Add raid operations
                 if (grouped.raid.length > 0) {
+                    if (fields.length > 0) fields.push(createSeparatorField());
                     const raidList = grouped.raid.map(op => 
                         `• **Fleet ${op.entityId}** on Planet ${op.targetPlanet}\n` +
-                        `  Started: Block ${op.startBlock} | Elapsed: ${op.blocksElapsed || 'N/A'} blocks`
+                        `  📍 Started: Block ${formatNumber(op.startBlock)} | ⏱️ Elapsed: ${formatNumber(op.blocksElapsed || 0)} blocks`
                     ).join('\n\n');
-                    embed.addFields({
+                    fields.push({
                         name: `⚔️ Raiding (${grouped.raid.length})`,
                         value: raidList,
                         inline: false
                     });
                 }
 
-                embed.setFooter({ text: `Total: ${operations.length} active operation(s)` });
+                const embed = createEnhancedEmbed({
+                    title: `${EMOJIS.STATUS.INFO} Active Operations`,
+                    color: EMBED_COLORS.primary,
+                    fields,
+                    footer: `Total: ${operations.length} active operation(s)`
+                });
 
                 await interaction.editReply({ embeds: [embed] });
             }

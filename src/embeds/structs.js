@@ -1,58 +1,122 @@
 const { EmbedBuilder } = require('discord.js');
-const { fetchPlayerData } = require('../queries/structs');
+const { fetchPlayerData, fetchStructData } = require('../queries/structs');
 const db = require('../database');
 const { getDiscordUsername, getPlayerIdFromAddress } = require('../utils/player');
+const { 
+    createEnhancedEmbed, 
+    createResourceField, 
+    createStatusField, 
+    createSeparatorField,
+    createEntityCard,
+    EMBED_COLORS 
+} = require('../utils/embedFormatter');
+const { formatNumber, formatResource, createProgressBar, createSeparator } = require('../utils/designSystem');
 
 const createPlayerEmbed = async (player) => {
-    const embed = new EmbedBuilder()
-        .setTitle(`Player: ${player.username || player.discord_username || 'Unknown'}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Player ID', value: player.player_id , inline: true },
-            { name: 'Guild', value: player.guild_name + ' [' + player.guild_id + ']' || 'None', inline: true },
-            { name: 'Primary Address', value: player.primary_address || 'None', inline: false },
-            { name: 'Structs Energy Consumption', value: player.structs_load || '0W', inline: false },
-            { name: 'Available Allocation Capacity', value: `${player.load}/${player.capacity}`, inline: false },
-            { name: 'Substation Provided Capacity', value: player.connection_capacity || '0W', inline: false },
-            { name: 'Total Energy', value: `${player.total_load}/${player.total_capacity}`, inline: false }
-        );
+    const fields = createEntityCard(player, {
+        title: `👤 ${player.username || player.discord_username || 'Unknown'}`,
+        fields: [
+            { key: 'player_id', label: 'Player ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'guild_name', 
+                label: 'Guild', 
+                format: (value, data) => {
+                    if (!value && !data.guild_id) return 'None';
+                    return `${value || 'Unknown'} [${data.guild_id || 'N/A'}]`;
+                },
+                options: { inline: true }
+            },
+            { key: 'primary_address', label: 'Primary Address', format: 'string', options: { inline: false } }
+        ],
+        sections: [
+            {
+                title: '⚡ Power',
+                fields: [
+                    { 
+                        key: 'structs_load', 
+                        label: 'Structs Energy Consumption', 
+                        format: 'resource',
+                        type: 'energy',
+                        options: { inline: false, suffix: 'W' }
+                    },
+                    {
+                        key: 'load',
+                        label: 'Available Allocation Capacity',
+                        format: 'progress',
+                        options: { 
+                            max: (data) => parseFloat(data.capacity) || 1,
+                            length: 20,
+                            showPercentage: true,
+                            showValues: true,
+                            inline: false
+                        }
+                    },
+                    {
+                        key: 'connection_capacity',
+                        label: 'Substation Provided Capacity',
+                        format: 'resource',
+                        type: 'capacity',
+                        options: { inline: false, suffix: 'W' }
+                    },
+                    {
+                        key: 'total_load',
+                        label: 'Total Energy',
+                        format: 'progress',
+                        options: {
+                            max: (data) => parseFloat(data.total_capacity) || 1,
+                            length: 20,
+                            showPercentage: true,
+                            showValues: true,
+                            inline: false
+                        }
+                    }
+                ]
+            }
+        ]
+    });
 
-    embed.addFields({ name: '\u200b', value: '\u200b'});
-
+    // Add location fields
+    fields.push(createSeparatorField());
     if (player.substation_id) {
-        embed.addFields({ name: 'Substation ID', value: player.substation_id, inline: true });
+        fields.push({ name: '📍 Substation ID', value: player.substation_id, inline: true });
     }
     if (player.planet_id) {
-        embed.addFields({ name: 'Planet ID', value: player.planet_id, inline: true });
+        fields.push({ name: '🌍 Planet ID', value: player.planet_id, inline: true });
     }
     if (player.fleet_id) {
-        embed.addFields({ name: 'Fleet ID', value: player.fleet_id, inline: true });
+        fields.push({ name: '🚀 Fleet ID', value: player.fleet_id, inline: true });
     }
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Player: ${player.username || player.discord_username || 'Unknown'}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createGuildEmbed = async (guild) => {
-    const embed = new EmbedBuilder()
-        .setTitle(`Guild: ${guild.name || 'Unknown'}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Guild ID', value: guild.id, inline: true },
-            { name: 'Tag', value: guild.tag || 'None', inline: true },
-            { name: 'Join Infusion Minimum', value: guild.join_infusion_minimum || '0', inline: true }
-        );
+    const fields = createEntityCard(guild, {
+        title: `🏰 ${guild.name || 'Unknown'}`,
+        fields: [
+            { key: 'id', label: 'Guild ID', format: 'string', options: { inline: true } },
+            { key: 'tag', label: 'Tag', format: 'string', options: { inline: true } },
+            { 
+                key: 'join_infusion_minimum', 
+                label: 'Join Infusion Minimum', 
+                format: 'number',
+                options: { inline: true }
+            }
+        ]
+    });
 
-    if (guild.description) {
-        embed.setDescription(guild.description);
-    }
-    if (guild.logo) {
-        embed.setThumbnail(guild.logo);
-    }
-    if (guild.website) {
-        embed.setURL(guild.website);
-    }
-
-    return embed;
+    return createEnhancedEmbed({
+        title: `Guild: ${guild.name || 'Unknown'}`,
+        description: guild.description || undefined,
+        color: EMBED_COLORS.secondary,
+        thumbnail: guild.logo || undefined,
+        fields,
+        footer: guild.website ? `Website: ${guild.website}` : undefined
+    });
 };
 
 const createPlanetEmbed = async (planet) => {
@@ -67,70 +131,103 @@ const createPlanetEmbed = async (planet) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Planet: ${planet.planet_id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Planet ID', value: planet.planet_id, inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
-            { name: 'Status', value: planet.status || 'Unknown', inline: true },
-            { name: 'Max Ore', value: planet.max_ore || '0', inline: true },
-            { name: 'Vulnerable Ore', value: planet.vulnerable_ore || '0', inline: true }
-        );
+    const fields = createEntityCard(planet, {
+        title: `🌍 ${planet.planet_id}`,
+        fields: [
+            { key: 'planet_id', label: 'Planet ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'owner', 
+                label: 'Owner', 
+                format: () => ownerDisplay || 'None',
+                options: { inline: true }
+            },
+            { 
+                key: 'status', 
+                label: 'Status', 
+                format: 'badge',
+                type: planet.status === 'active' ? 'active' : 'info',
+                options: { inline: true }
+            },
+            { 
+                key: 'max_ore', 
+                label: 'Max Ore', 
+                format: 'resource',
+                type: 'ore',
+                options: { inline: true }
+            },
+            { 
+                key: 'vulnerable_ore', 
+                label: 'Vulnerable Ore', 
+                format: 'resource',
+                type: 'ore',
+                options: { inline: true }
+            }
+        ]
+    });
 
     // Defense Systems
+    const defenseFields = [];
     if (planet.planetary_shield > 0 || planet.repair_network_quantity > 0 || 
         planet.defensive_cannon_quantity > 0 || planet.coordinated_global_shield_network_quantity > 0) {
-        embed.addFields({ name: 'Defense Systems', value: '\u200B' });
+        fields.push(createSeparatorField());
+        fields.push({ name: '🛡️ Defense Systems', value: createSeparator('─', 30), inline: false });
         if (planet.planetary_shield > 0) {
-            embed.addFields({ name: 'Planetary Shield', value: planet.planetary_shield.toString(), inline: true });
+            defenseFields.push({ name: 'Planetary Shield', value: formatNumber(planet.planetary_shield), inline: true });
         }
         if (planet.repair_network_quantity > 0) {
-            embed.addFields({ name: 'Repair Network', value: planet.repair_network_quantity.toString(), inline: true });
+            defenseFields.push({ name: 'Repair Network', value: formatNumber(planet.repair_network_quantity), inline: true });
         }
         if (planet.defensive_cannon_quantity > 0) {
-            embed.addFields({ name: 'Defensive Cannon', value: planet.defensive_cannon_quantity.toString(), inline: true });
+            defenseFields.push({ name: 'Defensive Cannon', value: formatNumber(planet.defensive_cannon_quantity), inline: true });
         }
         if (planet.coordinated_global_shield_network_quantity > 0) {
-            embed.addFields({ name: 'Global Shield Network', value: planet.coordinated_global_shield_network_quantity.toString(), inline: true });
+            defenseFields.push({ name: 'Global Shield Network', value: formatNumber(planet.coordinated_global_shield_network_quantity), inline: true });
         }
+        fields.push(...defenseFields);
     }
 
     // Interceptor Networks
     if (planet.low_orbit_ballistics_interceptor_network_quantity > 0 || 
         planet.advanced_low_orbit_ballistics_interceptor_network_quantity > 0) {
-        embed.addFields({ name: 'Interceptor Networks', value: '\u200B' });
+        fields.push(createSeparatorField());
+        fields.push({ name: '🚀 Interceptor Networks', value: createSeparator('─', 30), inline: false });
         if (planet.low_orbit_ballistics_interceptor_network_quantity > 0) {
-            embed.addFields({ name: 'LOBI Network', value: planet.low_orbit_ballistics_interceptor_network_quantity.toString(), inline: true });
+            fields.push({ name: 'LOBI Network', value: formatNumber(planet.low_orbit_ballistics_interceptor_network_quantity), inline: true });
         }
         if (planet.advanced_low_orbit_ballistics_interceptor_network_quantity > 0) {
-            embed.addFields({ name: 'Advanced LOBI Network', value: planet.advanced_low_orbit_ballistics_interceptor_network_quantity.toString(), inline: true });
+            fields.push({ name: 'Advanced LOBI Network', value: formatNumber(planet.advanced_low_orbit_ballistics_interceptor_network_quantity), inline: true });
         }
     }
 
     // LOBI Success Rate
     if (planet.lobi_network_success_rate_denominator > 0) {
         const successRate = (planet.lobi_network_success_rate_numerator / planet.lobi_network_success_rate_denominator * 100).toFixed(2);
-        embed.addFields({ name: 'LOBI Success Rate', value: `${successRate}%`, inline: true });
+        fields.push({ name: 'LOBI Success Rate', value: `${successRate}%`, inline: true });
     }
 
     // Jamming Stations
     if (planet.orbital_jamming_station_quantity > 0 || planet.advanced_orbital_jamming_station_quantity > 0) {
-        embed.addFields({ name: 'Jamming Stations', value: '\u200B' });
+        fields.push(createSeparatorField());
+        fields.push({ name: '📡 Jamming Stations', value: createSeparator('─', 30), inline: false });
         if (planet.orbital_jamming_station_quantity > 0) {
-            embed.addFields({ name: 'Orbital Jamming', value: planet.orbital_jamming_station_quantity.toString(), inline: true });
+            fields.push({ name: 'Orbital Jamming', value: formatNumber(planet.orbital_jamming_station_quantity), inline: true });
         }
         if (planet.advanced_orbital_jamming_station_quantity > 0) {
-            embed.addFields({ name: 'Advanced Jamming', value: planet.advanced_orbital_jamming_station_quantity.toString(), inline: true });
+            fields.push({ name: 'Advanced Jamming', value: formatNumber(planet.advanced_orbital_jamming_station_quantity), inline: true });
         }
     }
 
     // Raid Protection
     if (planet.block_start_raid > 0) {
-        embed.addFields({ name: 'Raid Protection', value: `Active since block ${planet.block_start_raid}`, inline: true });
+        fields.push(createSeparatorField());
+        fields.push({ name: '🛡️ Raid Protection', value: `Active since block ${formatNumber(planet.block_start_raid)}`, inline: false });
     }
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Planet: ${planet.planet_id}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createStructEmbed = async (struct) => {
@@ -145,69 +242,101 @@ const createStructEmbed = async (struct) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Struct: ${struct.struct_id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Struct ID', value: struct.struct_id, inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
-            { name: 'Type', value: struct.type, inline: true },
-            { name: 'Category', value: struct.category, inline: true },
-            { name: 'Location', value: `${struct.location_type} ${struct.location_id}`, inline: true },
-            { name: 'Slot', value: struct.slot.toString(), inline: true },
-            { name: 'Health', value: `${struct.health}/${struct.max_health}`, inline: true }
-        );
-
-    // Status
     const statusFlags = [];
-    if (struct.status.materialized) statusFlags.push('Materialized');
-    if (struct.status.built) statusFlags.push('Built');
-    if (struct.status.online) statusFlags.push('Online');
-    if (struct.status.stored) statusFlags.push('Stored');
-    if (struct.status.hidden) statusFlags.push('Hidden');
-    if (struct.status.destroyed) statusFlags.push('Destroyed');
-    if (struct.status.locked) statusFlags.push('Locked');
-    embed.addFields({ name: 'Status', value: statusFlags.join(', ') || 'None' });
+    if (struct.status?.materialized) statusFlags.push('✅ Materialized');
+    if (struct.status?.built) statusFlags.push('✅ Built');
+    if (struct.status?.online) statusFlags.push('🟢 Online');
+    if (struct.status?.stored) statusFlags.push('📦 Stored');
+    if (struct.status?.hidden) statusFlags.push('👁️ Hidden');
+    if (struct.status?.destroyed) statusFlags.push('💥 Destroyed');
+    if (struct.status?.locked) statusFlags.push('🔒 Locked');
+
+    const fields = createEntityCard(struct, {
+        title: `🏗️ ${struct.struct_id}`,
+        fields: [
+            { key: 'struct_id', label: 'Struct ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'owner', 
+                label: 'Owner', 
+                format: () => ownerDisplay || 'None',
+                options: { inline: true }
+            },
+            { key: 'type', label: 'Type', format: 'string', options: { inline: true } },
+            { key: 'category', label: 'Category', format: 'string', options: { inline: true } },
+            { 
+                key: 'location_type', 
+                label: 'Location', 
+                format: (value, data) => `${value} ${data.location_id}`,
+                options: { inline: true }
+            },
+            { key: 'slot', label: 'Slot', format: 'number', options: { inline: true } },
+            {
+                key: 'health',
+                label: 'Health',
+                format: 'progress',
+                options: {
+                    max: (data) => parseFloat(data.max_health) || 1,
+                    length: 20,
+                    showPercentage: true,
+                    showValues: true,
+                    inline: true
+                }
+            },
+            {
+                key: 'status',
+                label: 'Status',
+                format: () => statusFlags.length > 0 ? statusFlags.join(' | ') : 'None',
+                options: { inline: false }
+            }
+        ]
+    });
 
     // Build Status
-    if (!struct.status.built) {
-        embed.addFields(
-            { name: 'Build Start', value: struct.block_start_build.toString(), inline: true },
-            { name: 'Build Difficulty', value: struct.build_difficulty.toString(), inline: true }
-        );
+    if (!struct.status?.built) {
+        fields.push(createSeparatorField());
+        fields.push({ name: '🏗️ Build Status', value: createSeparator('─', 30), inline: false });
+        fields.push({ name: 'Build Start', value: formatNumber(struct.block_start_build), inline: true });
+        fields.push({ name: 'Build Difficulty', value: formatNumber(struct.build_difficulty), inline: true });
     }
 
     // Mining Status
     if (struct.planetary_mining !== 'noPlanetaryMining') {
-        embed.addFields({ name: 'Mining Start', value: struct.block_start_ore_mine.toString(), inline: true });
+        fields.push(createSeparatorField());
+        fields.push({ name: '⛏️ Mining', value: `Started: Block ${formatNumber(struct.block_start_ore_mine)}`, inline: false });
     }
 
     // Refining Status
     if (struct.planetary_refinery !== 'noPlanetaryRefinery') {
-        embed.addFields({ name: 'Refining Start', value: struct.block_start_ore_refine.toString(), inline: true });
+        fields.push(createSeparatorField());
+        fields.push({ name: '🔧 Refining', value: `Started: Block ${formatNumber(struct.block_start_ore_refine)}`, inline: false });
     }
 
     // Power Generation
     if (struct.power_generation !== 'noPowerGeneration') {
-        embed.addFields(
-            { name: 'Fuel', value: struct.generator_fuel || '0', inline: true },
-            { name: 'Load', value: struct.generator_load || '0', inline: true },
-            { name: 'Capacity', value: struct.generator_capacity || '0', inline: true }
-        );
+        fields.push(createSeparatorField());
+        fields.push({ name: '⚡ Power Generation', value: createSeparator('─', 30), inline: false });
+        fields.push({ name: 'Fuel', value: formatResource('fuel', struct.generator_fuel || 0), inline: true });
+        fields.push({ name: 'Load', value: formatResource('load', struct.generator_load || 0), inline: true });
+        fields.push({ name: 'Capacity', value: formatResource('capacity', struct.generator_capacity || 0), inline: true });
     }
 
     // Weapons
     if (struct.primary_weapon || struct.secondary_weapon) {
-        embed.addFields({ name: 'Weapons', value: '\u200B' });
+        fields.push(createSeparatorField());
+        fields.push({ name: '⚔️ Weapons', value: createSeparator('─', 30), inline: false });
         if (struct.primary_weapon) {
-            embed.addFields({ name: 'Primary', value: struct.primary_weapon, inline: true });
+            fields.push({ name: 'Primary', value: struct.primary_weapon, inline: true });
         }
         if (struct.secondary_weapon) {
-            embed.addFields({ name: 'Secondary', value: struct.secondary_weapon, inline: true });
+            fields.push({ name: 'Secondary', value: struct.secondary_weapon, inline: true });
         }
     }
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Struct: ${struct.struct_id}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createFleetEmbed = async (fleet) => {
@@ -222,16 +351,25 @@ const createFleetEmbed = async (fleet) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Fleet: ${fleet.name || 'Unknown'}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Fleet ID', value: fleet.id, inline: true },
-            { name: 'Type', value: fleet.fleet_type_name, inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true }
-        );
+    const fields = createEntityCard(fleet, {
+        title: `🚀 ${fleet.name || 'Unknown'}`,
+        fields: [
+            { key: 'id', label: 'Fleet ID', format: 'string', options: { inline: true } },
+            { key: 'fleet_type_name', label: 'Type', format: 'string', options: { inline: true } },
+            { 
+                key: 'owner', 
+                label: 'Owner', 
+                format: () => ownerDisplay || 'None',
+                options: { inline: true }
+            }
+        ]
+    });
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Fleet: ${fleet.name || 'Unknown'}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createProviderEmbed = async (provider) => {
@@ -246,22 +384,58 @@ const createProviderEmbed = async (provider) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Provider: ${provider.id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Provider ID', value: provider.id, inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
-            { name: 'Substation ID', value: provider.substation_id || 'None', inline: true },
-            { name: 'Rate', value: provider.rate || '0', inline: true },
-            { name: 'Access Policy', value: provider.access_policy || 'None', inline: true },
-            { name: 'Capacity Range', value: `${provider.capacity_minimum} - ${provider.capacity_maximum}`, inline: true },
-            { name: 'Duration Range', value: `${provider.duration_minimum} - ${provider.duration_maximum} blocks`, inline: true },
-            { name: 'Provider Cancellation Penalty', value: provider.provider_cancellation_pentalty.toString(), inline: true },
-            { name: 'Consumer Cancellation Penalty', value: provider.consumer_cacellation_pentalty.toString(), inline: true }
-        );
+    const fields = createEntityCard(provider, {
+        title: `💰 ${provider.id}`,
+        fields: [
+            { key: 'id', label: 'Provider ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'owner', 
+                label: 'Owner', 
+                format: () => ownerDisplay || 'None',
+                options: { inline: true }
+            },
+            { key: 'substation_id', label: 'Substation ID', format: 'string', options: { inline: true } },
+            { key: 'rate', label: 'Rate', format: 'number', options: { inline: true } },
+            { key: 'access_policy', label: 'Access Policy', format: 'badge', type: 'info', options: { inline: true } }
+        ],
+        sections: [
+            {
+                title: '📊 Capacity & Duration',
+                fields: [
+                    { 
+                        key: 'capacity_minimum', 
+                        label: 'Capacity Range', 
+                        format: (value, data) => `${formatNumber(value)} - ${formatNumber(data.capacity_maximum)}`,
+                        options: { inline: true }
+                    },
+                    { 
+                        key: 'duration_minimum', 
+                        label: 'Duration Range', 
+                        format: (value, data) => `${formatNumber(value)} - ${formatNumber(data.duration_maximum)} blocks`,
+                        options: { inline: true }
+                    },
+                    { 
+                        key: 'provider_cancellation_pentalty', 
+                        label: 'Provider Penalty', 
+                        format: 'number',
+                        options: { inline: true }
+                    },
+                    { 
+                        key: 'consumer_cacellation_pentalty', 
+                        label: 'Consumer Penalty', 
+                        format: 'number',
+                        options: { inline: true }
+                    }
+                ]
+            }
+        ]
+    });
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Provider: ${provider.id}`,
+        color: EMBED_COLORS.secondary,
+        fields
+    });
 };
 
 const createAllocationEmbed = async (allocation) => {
@@ -277,19 +451,34 @@ const createAllocationEmbed = async (allocation) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Allocation: ${allocation.id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Allocation ID', value: allocation.id, inline: true },
-            { name: 'Type', value: allocation.allocation_type, inline: true },
-            { name: 'Source ID', value: allocation.source_id, inline: true },
-            { name: 'Destination ID', value: allocation.destination_id, inline: true },
-            { name: 'Controller', value: controllerDisplay || 'None', inline: true },
-            { name: 'Capacity', value: allocation.capacity || '0', inline: true }
-        );
+    const fields = createEntityCard(allocation, {
+        title: `📡 ${allocation.id}`,
+        fields: [
+            { key: 'id', label: 'Allocation ID', format: 'string', options: { inline: true } },
+            { key: 'allocation_type', label: 'Type', format: 'string', options: { inline: true } },
+            { key: 'source_id', label: 'Source ID', format: 'string', options: { inline: true } },
+            { key: 'destination_id', label: 'Destination ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'controller', 
+                label: 'Controller', 
+                format: () => controllerDisplay || 'None',
+                options: { inline: true }
+            },
+            { 
+                key: 'capacity', 
+                label: 'Capacity', 
+                format: 'resource',
+                type: 'capacity',
+                options: { inline: true, suffix: 'W' }
+            }
+        ]
+    });
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Allocation: ${allocation.id}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createAgreementEmbed = async (agreement) => {
@@ -304,20 +493,35 @@ const createAgreementEmbed = async (agreement) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Agreement: ${agreement.id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Agreement ID', value: agreement.id, inline: true },
-            { name: 'Provider ID', value: agreement.provider_id, inline: true },
-            { name: 'Allocation ID', value: agreement.allocation_id, inline: true },
-            { name: 'Capacity', value: agreement.capacity || '0', inline: true },
-            { name: 'Duration', value: `${agreement.duration} blocks`, inline: true },
-            { name: 'End Block', value: agreement.end_block.toString(), inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true }
-        );
+    const fields = createEntityCard(agreement, {
+        title: `🤝 ${agreement.id}`,
+        fields: [
+            { key: 'id', label: 'Agreement ID', format: 'string', options: { inline: true } },
+            { key: 'provider_id', label: 'Provider ID', format: 'string', options: { inline: true } },
+            { key: 'allocation_id', label: 'Allocation ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'capacity', 
+                label: 'Capacity', 
+                format: 'resource',
+                type: 'capacity',
+                options: { inline: true, suffix: 'W' }
+            },
+            { key: 'duration', label: 'Duration', format: (value) => `${formatNumber(value)} blocks`, options: { inline: true } },
+            { key: 'end_block', label: 'End Block', format: 'number', options: { inline: true } },
+            { 
+                key: 'owner', 
+                label: 'Owner', 
+                format: () => ownerDisplay || 'None',
+                options: { inline: true }
+            }
+        ]
+    });
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Agreement: ${agreement.id}`,
+        color: EMBED_COLORS.secondary,
+        fields
+    });
 };
 
 const createSubstationEmbed = async (substation) => {
@@ -332,38 +536,118 @@ const createSubstationEmbed = async (substation) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Substation: ${substation.substation_id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Substation ID', value: substation.substation_id, inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
-            { name: '\u200b', value: '\u200b'},
-            { name: 'Load', value: substation.load || '0', inline: true },
-            { name: 'Capacity', value: substation.capacity || '0', inline: true },
-            { name: '\u200b', value: '\u200b'},
-            { name: 'Connection Capacity', value: substation.connection_capacity || '0', inline: true },
-            { name: 'Connection Count', value: substation.connection_count || '0', inline: true }
+    const fields = createEntityCard(substation, {
+        title: `⚡ ${substation.substation_id}`,
+        fields: [
+            { key: 'substation_id', label: 'Substation ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'owner', 
+                label: 'Owner', 
+                format: () => ownerDisplay || 'None',
+                options: { inline: true }
+            }
+        ],
+        sections: [
+            {
+                title: '📊 Capacity & Load',
+                fields: [
+                    {
+                        key: 'load',
+                        label: 'Load',
+                        format: 'progress',
+                        options: {
+                            max: (data) => parseFloat(data.capacity) || 1,
+                            length: 20,
+                            showPercentage: true,
+                            showValues: true,
+                            inline: true
+                        }
+                    },
+                    {
+                        key: 'capacity',
+                        label: 'Capacity',
+                        format: 'resource',
+                        type: 'capacity',
+                        options: { inline: true, suffix: 'W' }
+                    },
+                    {
+                        key: 'connection_capacity',
+                        label: 'Connection Capacity',
+                        format: 'resource',
+                        type: 'capacity',
+                        options: { inline: true, suffix: 'W' }
+                    },
+                    {
+                        key: 'connection_count',
+                        label: 'Connection Count',
+                        format: 'number',
+                        options: { inline: true }
+                    }
+                ]
+            }
+        ]
+    });
 
-        );
-
-    return embed;
+    return createEnhancedEmbed({
+        title: `Substation: ${substation.substation_id}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createReactorEmbed = async (reactor) => {
+    const fields = createEntityCard(reactor, {
+        title: `🔋 ${reactor.reactor_id}`,
+        fields: [
+            { key: 'reactor_id', label: 'Reactor ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'status', 
+                label: 'Status', 
+                format: 'badge',
+                type: reactor.status === 'active' ? 'active' : 'inactive',
+                options: { inline: false }
+            }
+        ],
+        sections: [
+            {
+                title: '⛽ Fuel & Power',
+                fields: [
+                    {
+                        key: 'fuel',
+                        label: 'Fuel',
+                        format: 'resource',
+                        type: 'fuel',
+                        options: { inline: true }
+                    },
+                    {
+                        key: 'load',
+                        label: 'Load',
+                        format: 'progress',
+                        options: {
+                            max: (data) => parseFloat(data.capacity) || 1,
+                            length: 20,
+                            showPercentage: true,
+                            showValues: true,
+                            inline: true
+                        }
+                    },
+                    {
+                        key: 'capacity',
+                        label: 'Capacity',
+                        format: 'resource',
+                        type: 'power',
+                        options: { inline: true, suffix: 'W' }
+                    }
+                ]
+            }
+        ]
+    });
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Reactor: ${reactor.reactor_id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Reactor ID', value: reactor.reactor_id, inline: true },
-            { name: 'Status', value: reactor.status || 'Unknown', inline: false },
-            { name: 'Fuel', value: reactor.fuel || '0', inline: true },
-            { name: 'Load', value: reactor.load || '0', inline: true },
-            { name: 'Capacity', value: reactor.capacity || '0', inline: true }
-        );
-
-    return embed;
+    return createEnhancedEmbed({
+        title: `Reactor: ${reactor.reactor_id}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createEmbeds = {
@@ -478,61 +762,139 @@ const createInfusionEmbed = async (infusion) => {
         }
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Infusion: ${infusion.id}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Infusion ID', value: infusion.id, inline: true },
-            { name: 'Owner', value: ownerDisplay || 'None', inline: true },
-            { name: 'Reactor ID', value: infusion.reactor_id || 'N/A', inline: true },
-            { name: 'Reactor Validator', value: infusion.reactor_validator || 'N/A', inline: true },
-            { name: 'Amount', value: infusion.amount || '0', inline: true },
-            { name: 'Denomination', value: infusion.denom || 'N/A', inline: true },
-            { name: 'Start Block', value: infusion.start_block?.toString() || 'N/A', inline: true },
-            { name: 'End Block', value: infusion.end_block?.toString() || 'N/A', inline: true },
-            { name: 'Duration', value: `${infusion.duration || 0} blocks`, inline: true }
-        );
+    const fields = createEntityCard(infusion, {
+        title: `💉 ${infusion.id}`,
+        fields: [
+            { key: 'id', label: 'Infusion ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'owner', 
+                label: 'Owner', 
+                format: () => ownerDisplay || 'None',
+                options: { inline: true }
+            },
+            { key: 'reactor_id', label: 'Reactor ID', format: 'string', options: { inline: true } },
+            { key: 'reactor_validator', label: 'Reactor Validator', format: 'string', options: { inline: true } },
+            { 
+                key: 'amount', 
+                label: 'Amount', 
+                format: 'resource',
+                type: 'alpha',
+                options: { inline: true }
+            },
+            { key: 'denom', label: 'Denomination', format: 'string', options: { inline: true } }
+        ],
+        sections: [
+            {
+                title: '⏱️ Timeline',
+                fields: [
+                    { key: 'start_block', label: 'Start Block', format: 'number', options: { inline: true } },
+                    { key: 'end_block', label: 'End Block', format: 'number', options: { inline: true } },
+                    { key: 'duration', label: 'Duration', format: (value) => `${formatNumber(value || 0)} blocks`, options: { inline: true } }
+                ]
+            }
+        ]
+    });
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Infusion: ${infusion.id}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 const createAddressEmbed = async (address) => {
-    const embed = new EmbedBuilder()
-        .setTitle(`Address: ${address.address}`)
-        .setColor('#0099ff')
-        .addFields(
-            { name: 'Address', value: address.address, inline: false },
-            { name: 'Player ID', value: address.player_id || 'None', inline: true },
-            { name: 'Username', value: address.username || address.discord_username || 'Unknown', inline: true },
-            { name: 'Guild', value: address.guild_name ? `${address.guild_name} [${address.guild_tag}]` : 'None', inline: true }
-        );
-
-    if (address.substation_id) {
-        embed.addFields({ name: 'Substation ID', value: address.substation_id, inline: true });
-    }
-    if (address.planet_id) {
-        embed.addFields({ name: 'Planet ID', value: address.planet_id, inline: true });
-    }
-    if (address.fleet_id) {
-        embed.addFields({ name: 'Fleet ID', value: address.fleet_id, inline: true });
-    }
-
-    embed.addFields(
-        { name: '\u200b', value: '\u200b' },
-        { name: 'Ore', value: address.ore || '0', inline: true },
-        { name: 'Load', value: address.load || '0', inline: true },
-        { name: 'Structs Load', value: address.structs_load || '0', inline: true },
-        { name: 'Capacity', value: address.capacity || '0', inline: true },
-        { name: 'Connection Capacity', value: address.connection_capacity || '0', inline: true },
-        { name: 'Total Load', value: address.total_load || '0', inline: true },
-        { name: 'Total Capacity', value: address.total_capacity || '0', inline: true }
-    );
+    const fields = createEntityCard(address, {
+        title: `📍 ${address.address}`,
+        fields: [
+            { key: 'address', label: 'Address', format: 'string', options: { inline: false } },
+            { key: 'player_id', label: 'Player ID', format: 'string', options: { inline: true } },
+            { 
+                key: 'username', 
+                label: 'Username', 
+                format: (value, data) => value || data.discord_username || 'Unknown',
+                options: { inline: true }
+            },
+            { 
+                key: 'guild_name', 
+                label: 'Guild', 
+                format: (value, data) => value ? `${value} [${data.guild_tag}]` : 'None',
+                options: { inline: true }
+            }
+        ],
+        sections: [
+            {
+                title: '📍 Locations',
+                fields: [
+                    { key: 'substation_id', label: 'Substation ID', format: 'string', options: { inline: true, showIfNull: false } },
+                    { key: 'planet_id', label: 'Planet ID', format: 'string', options: { inline: true, showIfNull: false } },
+                    { key: 'fleet_id', label: 'Fleet ID', format: 'string', options: { inline: true, showIfNull: false } }
+                ]
+            },
+            {
+                title: '⚡ Resources & Energy',
+                fields: [
+                    { 
+                        key: 'ore', 
+                        label: 'Ore', 
+                        format: 'resource',
+                        type: 'ore',
+                        options: { inline: true }
+                    },
+                    { 
+                        key: 'load', 
+                        label: 'Load', 
+                        format: 'resource',
+                        type: 'load',
+                        options: { inline: true, suffix: 'W' }
+                    },
+                    { 
+                        key: 'structs_load', 
+                        label: 'Structs Load', 
+                        format: 'resource',
+                        type: 'load',
+                        options: { inline: true, suffix: 'W' }
+                    },
+                    { 
+                        key: 'capacity', 
+                        label: 'Capacity', 
+                        format: 'resource',
+                        type: 'capacity',
+                        options: { inline: true, suffix: 'W' }
+                    },
+                    { 
+                        key: 'connection_capacity', 
+                        label: 'Connection Capacity', 
+                        format: 'resource',
+                        type: 'capacity',
+                        options: { inline: true, suffix: 'W' }
+                    },
+                    {
+                        key: 'total_load',
+                        label: 'Total Load',
+                        format: 'progress',
+                        options: {
+                            max: (data) => parseFloat(data.total_capacity) || 1,
+                            length: 20,
+                            showPercentage: true,
+                            showValues: true,
+                            inline: false
+                        }
+                    }
+                ]
+            }
+        ]
+    });
 
     if (address.primary_address && address.primary_address !== address.address) {
-        embed.addFields({ name: 'Primary Address', value: address.primary_address, inline: false });
+        fields.push(createSeparatorField());
+        fields.push({ name: '🔗 Primary Address', value: address.primary_address, inline: false });
     }
 
-    return embed;
+    return createEnhancedEmbed({
+        title: `Address: ${address.address}`,
+        color: EMBED_COLORS.primary,
+        fields
+    });
 };
 
 module.exports = {

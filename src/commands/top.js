@@ -2,6 +2,8 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { handleError, createWarningEmbed } = require('../utils/errors');
+const { createLeaderboardEmbed, EMBED_COLORS } = require('../utils/embedFormatter');
+const { formatNumber, createSeparator } = require('../utils/designSystem');
 
 /**
  * Top command module
@@ -165,20 +167,19 @@ async function createPlayersLeaderboard(orderBy) {
         []
     );
 
-    const embed = new EmbedBuilder()
-        .setTitle('🏆 Top Players')
-        .setColor('#FFD700')
-        .setDescription(`Players ranked by ${orderBy === 'alpha_balance' ? 'alpha balance' : 'alpha value'}`)
-        .setTimestamp();
-
-    let description = '';
-    result.rows.forEach((row, index) => {
-        description += `${index + 1}. **${row.discord_username || 'Player ID ' + row.player_id}**\n`;
-        description += `   Balance: ${row.display_alpha_balance} | Value: ${row.display_alpha_value}\n\n`;
+    return createLeaderboardEmbed({
+        title: 'Top Players',
+        orderBy: orderBy === 'alpha_balance' ? 'alpha balance' : 'alpha value',
+        items: result.rows,
+        formatItem: (item, rank) => {
+            const name = item.discord_username || `Player ID ${item.player_id}`;
+            const isTopThree = rank <= 3;
+            const prefix = isTopThree ? '**' : '';
+            const suffix = isTopThree ? '**' : '';
+            return `${prefix}${name}${suffix}\n   ⚡ Balance: ${item.display_alpha_balance} | 💎 Value: ${item.display_alpha_value}`;
+        },
+        topCount: 3
     });
-
-    embed.setDescription(description || 'No players found.');
-    return embed;
 }
 
 async function createGuildsLeaderboard(orderBy) {
@@ -211,20 +212,18 @@ async function createGuildsLeaderboard(orderBy) {
         []
     );
 
-    const embed = new EmbedBuilder()
-        .setTitle('🏰 Top Guilds')
-        .setColor('#4169E1')
-        .setDescription(`Guilds ranked by ${orderBy.replace('_', ' ')}`)
-        .setTimestamp();
-
-    let description = '';
-    result.rows.forEach((row, index) => {
-        description += `${index + 1}. **${row.name}** [${row.tag}] #${row.id}\n`;
-        description += `   Players: ${row.player_count} | Collateral: ${row.display_collateral_balance} | Ratio: ${row.display_ratio}\n\n`;
+    return createLeaderboardEmbed({
+        title: 'Top Guilds',
+        orderBy: orderBy.replace(/_/g, ' '),
+        items: result.rows,
+        formatItem: (item, rank) => {
+            const isTopThree = rank <= 3;
+            const prefix = isTopThree ? '**' : '';
+            const suffix = isTopThree ? '**' : '';
+            return `${prefix}${item.name}${suffix} [${item.tag}] #${item.id}\n   👥 Players: ${item.player_count} | 💰 Collateral: ${item.display_collateral_balance} | 📊 Ratio: ${item.display_ratio}`;
+        },
+        topCount: 3
     });
-
-    embed.setDescription(description || 'No guilds found.');
-    return embed;
 }
 
 async function createSubstationsLeaderboard(orderBy) {
@@ -262,21 +261,18 @@ async function createSubstationsLeaderboard(orderBy) {
         []
     );
 
-    const embed = new EmbedBuilder()
-        .setTitle('⚡ Top Substations')
-        .setColor('#32CD32')
-        .setDescription(`Substations ranked by ${orderBy.replace('_', ' ')}`)
-        .setTimestamp();
-
-    let description = '';
-    result.rows.forEach((row, index) => {
-        description += `${index + 1}. **${row.id}** (${row.discord_username || 'Unknown'})\n`;
-        description += `   Load: ${row.display_load} | Capacity: ${row.display_capacity}\n`;
-        description += `   Ratio: ${row.display_ratio} | Players: ${row.player_count}\n\n`;
+    return createLeaderboardEmbed({
+        title: 'Top Substations',
+        orderBy: orderBy.replace(/_/g, ' '),
+        items: result.rows,
+        formatItem: (item, rank) => {
+            const isTopThree = rank <= 3;
+            const prefix = isTopThree ? '**' : '';
+            const suffix = isTopThree ? '**' : '';
+            return `${prefix}${item.id}${suffix} (${item.discord_username || 'Unknown'})\n   ⚙️ Load: ${item.display_load} | 📊 Capacity: ${item.display_capacity}\n   📈 Ratio: ${item.display_ratio} | 👥 Players: ${item.player_count}`;
+        },
+        topCount: 3
     });
-
-    embed.setDescription(description || 'No substations found.');
-    return embed;
 }
 
 async function createReactorsLeaderboard(orderBy) {
@@ -303,20 +299,18 @@ async function createReactorsLeaderboard(orderBy) {
         []
     );
 
-    const embed = new EmbedBuilder()
-        .setTitle('🔋 Top Reactors')
-        .setColor('#FF4500')
-        .setDescription(`Reactors ranked by ${orderBy}`)
-        .setTimestamp();
-
-    let description = '';
-    result.rows.forEach((row, index) => {
-        description += `${index + 1}. **${row.id}**\n`;
-        description += `   Fuel: ${row.display_fuel} | Power: ${row.display_power}\n\n`;
+    return createLeaderboardEmbed({
+        title: 'Top Reactors',
+        orderBy: orderBy,
+        items: result.rows,
+        formatItem: (item, rank) => {
+            const isTopThree = rank <= 3;
+            const prefix = isTopThree ? '**' : '';
+            const suffix = isTopThree ? '**' : '';
+            return `${prefix}${item.id}${suffix}\n   ⛽ Fuel: ${item.display_fuel} | ⚡ Power: ${item.display_power}`;
+        },
+        topCount: 3
     });
-
-    embed.setDescription(description || 'No reactors found.');
-    return embed;
 }
 
 async function createOffersLeaderboard(orderBy) {
@@ -354,20 +348,16 @@ async function createOffersLeaderboard(orderBy) {
         []
     );
 
-    const embed = new EmbedBuilder()
-        .setTitle('💰 Top Offers')
-        .setColor('#9370DB')
-        .setDescription(`Offers ranked by ${orderBy.replace(/_/g, ' ')}`)
-        .setTimestamp();
-
-    let description = '';
-    result.rows.forEach((row, index) => {
-        description += `${index + 1}. **${row.id}** (${row.discord_username || 'Unknown'})\n`;
-        description += `   Rate: ${row.display_rate} | Access: ${row.access_policy}\n`;
-        description += `   Provider Penalty: ${row.display_provider_cancellation_pentalty} | Consumer Penalty: ${row.display_consumer_cancellation_pentalty}\n`;
-        description += `   Players: ${row.player_count}\n\n`;
+    return createLeaderboardEmbed({
+        title: 'Top Offers',
+        orderBy: orderBy.replace(/_/g, ' '),
+        items: result.rows,
+        formatItem: (item, rank) => {
+            const isTopThree = rank <= 3;
+            const prefix = isTopThree ? '**' : '';
+            const suffix = isTopThree ? '**' : '';
+            return `${prefix}${item.id}${suffix} (${item.discord_username || 'Unknown'})\n   💰 Rate: ${item.display_rate} | 🔓 Access: ${item.access_policy}\n   ⚠️ Provider Penalty: ${item.display_provider_cancellation_pentalty} | Consumer Penalty: ${item.display_consumer_cancellation_pentalty}\n   👥 Players: ${item.player_count}`;
+        },
+        topCount: 3
     });
-
-    embed.setDescription(description || 'No offers found.');
-    return embed;
 } 

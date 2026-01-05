@@ -158,7 +158,7 @@ Commands follow a consistent pattern:
 - Verify `DATABASE_URL` is correct
 - Ensure PostgreSQL is running and accessible
 - Check database schema is installed
-- See [Database Schema](docs/DATABASE_SCHEMA.md) for required table structures
+- See [Structs Compendium](https://github.com/playstructs/structs-compendium) for database schema documentation
 
 ### NATS connection errors
 - NATS is optional - the bot will continue without it
@@ -191,11 +191,14 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 - [Best Practices](docs/BEST_PRACTICES.md) - Development guidelines and best practices
 
 ### Game Documentation
-- [Getting Started](docs/GETTING_STARTED.md) - Player onboarding guide
-- [Structure Management](docs/STRUCTURE_MANAGEMENT.md) - Complete structure operations guide
-- [Economic Systems](docs/ECONOMIC_SYSTEMS.md) - Economic mechanics and formulas
-- [Combat Guide](docs/COMBAT_GUIDE.md) - Combat mechanics and strategies
-- [Player Economics Guide](docs/PLAYER_ECONOMICS_GUIDE.md) - Player economic systems
+> **Note**: This bot project focuses on **bot implementation documentation**. For comprehensive game mechanics, API documentation, schemas, and protocols, see the **[Structs Compendium](https://github.com/playstructs/structs-compendium)**.
+
+- [Game Documentation](docs/GAME_DOCUMENTATION.md) - Links to compendium and game documentation
+- [Structs Compendium](https://github.com/playstructs/structs-compendium) - Complete game documentation repository
+- [Agent Guide](https://github.com/playstructs/structs-compendium/blob/main/AGENTS.md) - Start here for AI agents
+- [Loading Strategy](https://github.com/playstructs/structs-compendium/blob/main/LOADING_STRATEGY.md) - Efficient documentation loading
+
+**Access from Discord**: Use `/dev compendium` command for quick links
 
 > **Quick Start**: New developers should start with the [Documentation Index](docs/README.md) for a guided overview.
 

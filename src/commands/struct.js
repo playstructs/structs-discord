@@ -7,6 +7,8 @@ const { getPlayerId, getPlayerIdWithValidation } = require('../utils/player');
 const { formatStructChoice, getStructAttribute } = require('../utils/structs');
 const { getStructStatus } = require('../utils/status');
 const crypto = require('crypto');
+const { createEnhancedEmbed, createStatusField, createSeparatorField, EMBED_COLORS } = require('../utils/embedFormatter');
+const { formatNumber, createProgressBar, createSeparator } = require('../utils/designSystem');
 
 /**
  * Structure management command module
@@ -892,58 +894,91 @@ module.exports = {
                 const ambitKey = ambitMap[structStatus.operating_ambit] || 'SPACE';
                 const ambitEmoji = EMOJIS.AMBIT[ambitKey] || '🌍';
 
-                // Build status embed
-                const embed = new EmbedBuilder()
-                    .setTitle(`${EMOJIS.STRUCT.PLANETARY} Structure Status: ${structStatus.id}`)
-                    .setColor(0x0099ff)
-                    .setDescription(`**${structStatus.type}**`)
-                    .addFields(
-                        { name: '📍 Location', value: structStatus.planet_id || 'N/A', inline: true },
-                        { name: '🌍 Ambit', value: `${ambitEmoji} ${ambitKey}`, inline: true },
-                        { name: '🔢 Slot', value: structStatus.slot?.toString() || 'N/A', inline: true },
-                        { name: '⚡ State', value: structStatus.state, inline: true },
-                        { name: '✅ Built', value: structStatus.isBuilt ? 'Yes' : 'No', inline: true },
-                        { name: '🟢 Active', value: structStatus.isActive ? 'Yes' : 'No', inline: true }
-                    )
-                    .setTimestamp();
+                const fields = [
+                    { name: '📍 Location', value: structStatus.planet_id || 'N/A', inline: true },
+                    { name: '🌍 Ambit', value: `${ambitEmoji} ${ambitKey}`, inline: true },
+                    { name: '🔢 Slot', value: structStatus.slot?.toString() || 'N/A', inline: true },
+                    createStatusField('⚡ State', structStatus.state, structStatus.isActive ? 'active' : 'inactive', true),
+                    createStatusField('✅ Built', structStatus.isBuilt ? 'Yes' : 'No', structStatus.isBuilt ? 'success' : 'warning', true),
+                    createStatusField('🟢 Active', structStatus.isActive ? 'Yes' : 'No', structStatus.isActive ? 'active' : 'inactive', true)
+                ];
 
                 // Add build progress if building
                 if (structStatus.buildProgress) {
-                    embed.addFields({
-                        name: '🏗️ Build Progress',
-                        value: `Started: Block ${structStatus.buildProgress.startBlock}\n` +
-                               `Current: Block ${structStatus.buildProgress.currentBlock || 'N/A'}\n` +
-                               `Elapsed: ${structStatus.buildProgress.blocksElapsed || 'N/A'} blocks`,
-                        inline: false
+                    fields.push(createSeparatorField());
+                    fields.push({ 
+                        name: '🏗️ Build Progress', 
+                        value: createSeparator('─', 30), 
+                        inline: false 
+                    });
+                    fields.push({ 
+                        name: 'Started', 
+                        value: `Block ${formatNumber(structStatus.buildProgress.startBlock)}`, 
+                        inline: true 
+                    });
+                    if (structStatus.buildProgress.currentBlock) {
+                        fields.push({ 
+                            name: 'Current', 
+                            value: `Block ${formatNumber(structStatus.buildProgress.currentBlock)}`, 
+                            inline: true 
+                        });
+                    }
+                    fields.push({ 
+                        name: 'Elapsed', 
+                        value: `${formatNumber(structStatus.buildProgress.blocksElapsed || 0)} blocks`, 
+                        inline: true 
                     });
                 }
 
                 // Add mining status if active
                 if (structStatus.miningActive) {
-                    embed.addFields({
-                        name: '⛏️ Mining',
-                        value: `Active | Started: Block ${structStatus.miningActive.startBlock}\n` +
-                               `Elapsed: ${structStatus.miningActive.blocksElapsed || 'N/A'} blocks`,
-                        inline: false
+                    fields.push(createSeparatorField());
+                    fields.push({ 
+                        name: '⛏️ Mining', 
+                        value: createSeparator('─', 30), 
+                        inline: false 
+                    });
+                    fields.push(createStatusField('Status', 'Active', 'active', false));
+                    fields.push({ 
+                        name: 'Started', 
+                        value: `Block ${formatNumber(structStatus.miningActive.startBlock)}`, 
+                        inline: true 
+                    });
+                    fields.push({ 
+                        name: 'Elapsed', 
+                        value: `${formatNumber(structStatus.miningActive.blocksElapsed || 0)} blocks`, 
+                        inline: true 
                     });
                 }
 
                 // Add refining status if active
                 if (structStatus.refiningActive) {
-                    embed.addFields({
-                        name: '🔧 Refining',
-                        value: `Active | Started: Block ${structStatus.refiningActive.startBlock}\n` +
-                               `Elapsed: ${structStatus.refiningActive.blocksElapsed || 'N/A'} blocks`,
-                        inline: false
+                    fields.push(createSeparatorField());
+                    fields.push({ 
+                        name: '🔧 Refining', 
+                        value: createSeparator('─', 30), 
+                        inline: false 
+                    });
+                    fields.push(createStatusField('Status', 'Active', 'active', false));
+                    fields.push({ 
+                        name: 'Started', 
+                        value: `Block ${formatNumber(structStatus.refiningActive.startBlock)}`, 
+                        inline: true 
+                    });
+                    fields.push({ 
+                        name: 'Elapsed', 
+                        value: `${formatNumber(structStatus.refiningActive.blocksElapsed || 0)} blocks`, 
+                        inline: true 
                     });
                 }
 
                 // Add defense status if protecting
                 if (structStatus.protected_struct_id) {
-                    embed.addFields({
-                        name: '🛡️ Defense',
-                        value: `Protecting: ${structStatus.protected_struct_id}`,
-                        inline: false
+                    fields.push(createSeparatorField());
+                    fields.push({ 
+                        name: '🛡️ Defense', 
+                        value: `Protecting: **${structStatus.protected_struct_id}**`, 
+                        inline: false 
                     });
                 }
 
@@ -955,12 +990,20 @@ module.exports = {
                 if (structStatus.capabilities.hasStealth) capabilities.push('✅ Has Stealth');
 
                 if (capabilities.length > 0) {
-                    embed.addFields({
-                        name: 'Capabilities',
+                    fields.push(createSeparatorField());
+                    fields.push({
+                        name: '⚙️ Capabilities',
                         value: capabilities.join(' | ') || 'None',
                         inline: false
                     });
                 }
+
+                const embed = createEnhancedEmbed({
+                    title: `${EMOJIS.STRUCT.PLANETARY} Structure Status: ${structStatus.id}`,
+                    description: `**${structStatus.type}**`,
+                    color: EMBED_COLORS.primary,
+                    fields
+                });
 
                 await interaction.editReply({ embeds: [embed] });
             }
