@@ -1,0 +1,45 @@
+/**
+ * NumberFormatter utility - replicates webapp logic
+ * @module utils/numberFormatter
+ */
+
+class NumberFormatter {
+    constructor() {
+        this.scale = {
+            '1': 'k',
+            '2': 'M',
+            '3': 'G',
+            '4': 'T',
+            '5': 'P',
+            '6': 'E',
+            '7': 'Z',
+            '8': 'Y',
+            '9': 'R',
+            '10': 'Q'
+        };
+    }
+
+    /**
+     * Format number with scale suffix (k, M, G, etc.)
+     * @param {number|string} number - Number to format
+     * @returns {string} Formatted number string
+     */
+    format(number) {
+        const intString = `${parseInt(`${number}`)}`;
+        const numDigits = intString.length;
+
+        if (numDigits <= 3) {
+            return intString;
+        }
+
+        let remainderDigits = numDigits % 3;
+        remainderDigits = remainderDigits === 0 ? 3 : remainderDigits;
+        const scaleIndex = ((numDigits - remainderDigits) / 3);
+        const unit = this.scale[scaleIndex];
+
+        return intString.substring(0, remainderDigits) + unit;
+    }
+}
+
+module.exports = NumberFormatter;
+

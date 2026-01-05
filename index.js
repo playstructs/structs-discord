@@ -2,6 +2,7 @@
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 require('dotenv').config();
 const natsService = require('./src/services/nats');
+const { initBrowser, closeBrowser } = require('./src/services/imageGenerator');
 
 // Discord Token
 const token = process.env.DISCORD_TOKEN
@@ -37,6 +38,16 @@ client.once('ready', async () => {
     } catch (error) {
         console.error('Failed to initialize NATS service:', error);
         console.log('Bot will continue running without NATS functionality');
+    }
+    
+    // Initialize Puppeteer browser for image generation
+    try {
+        console.log('Initializing Puppeteer browser...');
+        await initBrowser();
+        console.log('Puppeteer browser initialized');
+    } catch (error) {
+        console.error('Failed to initialize Puppeteer browser:', error);
+        console.log('Bot will continue running but /spec command may not work');
     }
 });
 
@@ -83,6 +94,21 @@ client.on('interactionCreate', async interaction => {
     } catch (error) {
         console.error('Error handling interaction:', error);
     }
+});
+
+// Handle graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('Shutting down gracefully...');
+    await closeBrowser();
+    client.destroy();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('Shutting down gracefully...');
+    await closeBrowser();
+    client.destroy();
+    process.exit(0);
 });
 
 // Login to Discord with your client's token

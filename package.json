@@ -26,7 +26,8 @@
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
     "nats": "^2.16.0",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "puppeteer": "^21.6.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.3",
