@@ -3,7 +3,7 @@
  * @module utils/designSystem
  * @description Design system constants and utilities matching structs-webapp SUI
  * 
- * Based on: .agents/repositories/structs-webapp/src/public/css/sui/sui.css
+ * Based on: assets/css/sui/sui.css
  */
 
 /**

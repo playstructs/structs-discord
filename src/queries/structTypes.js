@@ -30,6 +30,7 @@ const fetchStructTypeData = {
                 struct_type.primary_weapon,
                 struct_type.primary_weapon_label,
                 struct_type.primary_weapon_description,
+                struct_type.primary_weapon_class,
                 struct_type.primary_weapon_control,
                 struct_type.primary_weapon_charge,
                 struct_type.primary_weapon_ambits,
@@ -46,7 +47,7 @@ const fetchStructTypeData = {
                 -- Secondary weapon
                 struct_type.secondary_weapon,
                 struct_type.secondary_weapon_label,
-                struct_type.secondary_weapon_description,
+                struct_type.secondary_weapon_class,
                 struct_type.secondary_weapon_control,
                 struct_type.secondary_weapon_charge,
                 struct_type.secondary_weapon_ambits,
@@ -69,6 +70,7 @@ const fetchStructTypeData = {
                 struct_type.unit_defenses,
                 struct_type.unit_defenses_label,
                 struct_type.unit_defenses_description,
+                struct_type.unit_description,
                 struct_type.planetary_defenses,
                 struct_type.planetary_defenses_label,
                 struct_type.planetary_defenses_description,
@@ -79,7 +81,6 @@ const fetchStructTypeData = {
                 -- Power generation
                 struct_type.power_generation,
                 struct_type.power_generation_label,
-                struct_type.power_generation_description,
                 struct_type.generating_rate,
                 
                 -- Mining and refining
@@ -87,8 +88,12 @@ const fetchStructTypeData = {
                 struct_type.planetary_mining_label,
                 struct_type.planetary_mining_description,
                 struct_type.planetary_refinery,
-                struct_type.planetary_refinery_label,
-                struct_type.planetary_refinery_description,
+                struct_type.planetary_refineries_label,
+                struct_type.planetary_refineries_description,
+                
+                -- Drive
+                struct_type.drive_label,
+                struct_type.drive_description,
                 
                 -- Counter attack
                 struct_type.counter_attack,

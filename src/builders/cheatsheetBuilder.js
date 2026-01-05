@@ -14,72 +14,42 @@ const {
  * @module builders/cheatsheetBuilder
  */
 
-// Icon to emoji mapping (since we can't use icon fonts)
-const ICON_TO_EMOJI = {
-    'icon-ballistic-weapon': '⚔️',
-    'icon-smart-weapon': '🎯',
-    'icon-counter': '🛡️',
-    'icon-adv-counter': '🛡️',
-    'icon-armour': '🛡️',
-    'icon-kinetic-barrier': '🛡️',
-    'icon-indirect': '💥',
-    'icon-signal-jam': '📡',
-    'icon-stealth': '👁️',
-    'icon-planetary-shield': '🛡️',
-    'icon-refine': '⚙️',
-    'icon-send-alpha': '⚡',
-    'icon-energy': '⚡'
-};
-
-// Ambit icon mapping
-const AMBIT_ICONS = {
-    'space': '🚀',
-    'air': '✈️',
-    'land': '🏔️',
-    'water': '🌊'
+// Ambit icon class mapping (using Structicons font)
+const AMBIT_ICON_CLASSES = {
+    'space': 'sui-icon-space',
+    'air': 'sui-icon-air',
+    'land': 'sui-icon-land',
+    'water': 'sui-icon-water'
 };
 
 class CheatsheetBuilder {
     constructor() {
         this.chargeCalculator = new ChargeCalculator();
         this.numberFormatter = new NumberFormatter();
-        this.structImageDir = path.join(__dirname, '../../.agents/repositories/structs-webapp/src/public/img/structs');
+        this.structImageDir = path.join(__dirname, '../../assets/img/structs');
     }
 
-    /**
-     * Replace icon classes with emojis
-     * @param {string} html - HTML string
-     * @returns {string} HTML with emojis
-     */
-    replaceIcons(html) {
-        let result = html;
-        
-        // Replace icon classes with emojis
-        for (const [iconClass, emoji] of Object.entries(ICON_TO_EMOJI)) {
-            result = result.replace(new RegExp(`<i class="[^"]*${iconClass}[^"]*"></i>`, 'g'), emoji);
-        }
-        
-        // Replace ambit icons
-        for (const [ambit, emoji] of Object.entries(AMBIT_ICONS)) {
-            result = result.replace(new RegExp(`<i class="[^"]*sui-icon-${ambit}[^"]*"><\/i>`, 'g'), emoji);
-        }
-        
-        // Remove any remaining icon tags
-        result = result.replace(/<i class="[^"]*sui-icon[^"]*"><\/i>/g, '');
-        
-        return result;
-    }
 
     /**
      * Get passive weaponry ambits from primary and secondary weapons
      * @param {Object} structType - Struct type data
-     * @returns {Array<string>} Array of ambits
+     * @returns {Array<string>} Array of ambits (resolved, lowercase)
      */
     getPassiveWeaponryAmbits(structType) {
-        const ambits = new Set([
-            ...(structType.primary_weapon_ambits_array || []),
-            ...(structType.secondary_weapon_ambits_array || [])
-        ]);
+        const possibleAmbits = (structType.possible_ambit_array || []).map(a => a.toLowerCase());
+        
+        // Resolve ambits from both weapons, handling "local" special case
+        const primaryResolved = this.resolveAmbits(
+            structType.primary_weapon_ambits_array || [],
+            possibleAmbits
+        );
+        const secondaryResolved = this.resolveAmbits(
+            structType.secondary_weapon_ambits_array || [],
+            possibleAmbits
+        );
+        
+        // Combine and remove duplicates
+        const ambits = new Set([...primaryResolved, ...secondaryResolved]);
         return [...ambits].sort((a, b) => {
             const indexA = AMBIT_ORDER.indexOf(a.toUpperCase());
             const indexB = AMBIT_ORDER.indexOf(b.toUpperCase());
@@ -101,7 +71,8 @@ class CheatsheetBuilder {
         const chargeLevel = this.chargeCalculator.calcChargeLevelByCharge(batteryCost);
 
         for (let i = 1; i < this.chargeCalculator.chargeLevelThresholds.length; i++) {
-            const isFilledClass = i <= chargeLevel ? 'sui-mod-filled' : '';
+            const isFilled = i <= chargeLevel;
+            const isFilledClass = isFilled ? 'sui-mod-filled' : '';
             batteryChunks += `<div class="sui-battery-chunk ${isFilledClass}"></div>`;
         }
 
@@ -123,7 +94,7 @@ class CheatsheetBuilder {
         }
         return `
             <div class="sui-cheatsheet-cost">
-                ${this.numberFormatter.format(energyCost)} ⚡
+                ${this.numberFormatter.format(energyCost)} <i class="sui-icon sui-icon-energy"></i>
             </div>
         `;
     }
@@ -261,33 +232,124 @@ class CheatsheetBuilder {
     }
 
     /**
+     * Convert numeric ambit flag to ambit name
+     * @param {number|string} value - Ambit value (numeric flag or string)
+     * @returns {string|null} Ambit name in lowercase, or null if invalid
+     */
+    numericAmbitToName(value) {
+        const num = typeof value === 'string' ? parseInt(value, 10) : value;
+        if (isNaN(num)) return null;
+        
+        // Ambit flags: 16=SPACE, 8=AIR, 4=LAND, 2=WATER
+        const flagMap = {
+            16: 'space',
+            8: 'air',
+            4: 'land',
+            2: 'water'
+        };
+        
+        // Check flag map first
+        if (flagMap[num]) {
+            return flagMap[num];
+        }
+        
+        // Handle 1-based index mapping (in case database uses indices)
+        // Based on AMBIT_ORDER: SPACE, AIR, LAND, WATER
+        const indexMap = {
+            1: 'space',  // Index 1 = SPACE (first in AMBIT_ORDER)
+            2: 'air',    // Index 2 = AIR (second in AMBIT_ORDER)
+            3: 'land',   // Index 3 = LAND (third in AMBIT_ORDER)
+            4: 'water'   // Index 4 = WATER (fourth in AMBIT_ORDER)
+        };
+        
+        return indexMap[num] || null;
+    }
+
+    /**
+     * Resolve ambit values - handle "local" and numeric flags
+     * @param {Array<string|number>} ambits - Ambit values from database (may be strings or numbers)
+     * @param {Array<string>} possibleAmbits - Struct's possible ambits
+     * @returns {Array<string>} Resolved ambit values (lowercase strings)
+     */
+    resolveAmbits(ambits, possibleAmbits) {
+        if (!ambits || ambits.length === 0) {
+            return [];
+        }
+        
+        const resolved = [];
+        
+        for (const ambit of ambits) {
+            // Handle "local" special case
+            if (typeof ambit === 'string' && ambit.toLowerCase() === 'local') {
+                // Replace "local" with struct's possible ambits
+                resolved.push(...(possibleAmbits || []).map(a => a.toLowerCase()));
+                continue;
+            }
+            
+            // Handle numeric ambit flags (1, 2, 4, 8, 16)
+            if (typeof ambit === 'number' || (typeof ambit === 'string' && !isNaN(parseInt(ambit, 10)))) {
+                const ambitName = this.numericAmbitToName(ambit);
+                if (ambitName) {
+                    resolved.push(ambitName);
+                }
+                continue;
+            }
+            
+            // Handle string ambit names (space, air, land, water)
+            if (typeof ambit === 'string') {
+                const normalized = ambit.toLowerCase();
+                // Validate it's a valid ambit name
+                if (AMBIT_ORDER.includes(normalized.toUpperCase())) {
+                    resolved.push(normalized);
+                }
+            }
+        }
+        
+        // Remove duplicates and sort
+        return [...new Set(resolved)].sort((a, b) => {
+            const indexA = AMBIT_ORDER.indexOf(a.toUpperCase());
+            const indexB = AMBIT_ORDER.indexOf(b.toUpperCase());
+            return indexA - indexB;
+        });
+    }
+
+    /**
      * Render weapon property HTML
      * @param {string} weaponType - Weapon type
-     * @param {string} weaponLabel - Weapon label
+     * @param {string} weaponLabel - Weapon label (human-readable)
      * @param {number} weaponDamage - Weapon damage
-     * @param {Array<string>} weaponAmbits - Weapon ambits
+     * @param {Array<string>} weaponAmbits - Weapon ambits (may contain "local")
      * @param {string} notEquippedValue - Value indicating not equipped
+     * @param {Array<string>} possibleAmbits - Struct's possible ambits (for resolving "local")
      * @returns {string} HTML
      */
-    renderWeaponProperty(weaponType, weaponLabel, weaponDamage, weaponAmbits, notEquippedValue) {
+    renderWeaponProperty(weaponType, weaponLabel, weaponDamage, weaponAmbits, notEquippedValue, possibleAmbits = []) {
         if (!weaponType || weaponType === notEquippedValue) {
             return '';
         }
 
         const iconClass = STRUCT_EQUIPMENT_ICON_MAP[weaponType] || 'icon-ballistic-weapon';
-        const iconEmoji = ICON_TO_EMOJI[iconClass] || '⚔️';
-        const ambitIcons = (weaponAmbits || []).map(ambit => {
-            const ambitLower = ambit.toLowerCase();
-            return AMBIT_ICONS[ambitLower] || '🚀';
+        
+        // Resolve ambits (handle "local" special case)
+        const resolvedAmbits = this.resolveAmbits(weaponAmbits, possibleAmbits);
+        
+        const ambitIcons = resolvedAmbits.map(ambit => {
+            // Ensure ambit is a valid string key (should already be from resolveAmbits, but be safe)
+            const ambitKey = typeof ambit === 'string' ? ambit.toLowerCase() : String(ambit).toLowerCase();
+            const ambitIconClass = AMBIT_ICON_CLASSES[ambitKey] || 'sui-icon-space';
+            return `<i class="sui-icon ${ambitIconClass}"></i>`;
         }).join('');
+
+        // Use human-readable label, fallback to type if label not available
+        const displayLabel = weaponLabel || weaponType;
 
         return `
             <div class="sui-cheatsheet-property">
                 <div class="sui-cheatsheet-property-icon">
-                    ${iconEmoji}
+                    <i class="sui-icon sui-icon-md ${iconClass}"></i>
                 </div>
                 <div class="sui-cheatsheet-property-info">
-                    <div>${weaponLabel || weaponType}</div>
+                    <div>${displayLabel}</div>
                     <div>
                         ${weaponDamage} DMG ${ambitIcons}
                     </div>
@@ -307,7 +369,6 @@ class CheatsheetBuilder {
         }
 
         const iconClass = STRUCT_EQUIPMENT_ICON_MAP[structType.passive_weaponry] || 'icon-counter';
-        const iconEmoji = ICON_TO_EMOJI[iconClass] || '🛡️';
         const weaponAmbits = this.getPassiveWeaponryAmbits(structType);
         const possibleAmbitsLower = (structType.possible_ambit_array || []).map(a => a.toLowerCase());
 
@@ -319,34 +380,46 @@ class CheatsheetBuilder {
 
             if (regularAmbits.length > 0) {
                 const regularIcons = regularAmbits.map(ambit => {
-                    const ambitLower = ambit.toLowerCase();
-                    return AMBIT_ICONS[ambitLower] || '🚀';
+                    // Ensure ambit is a string and lowercase
+                    const ambitStr = typeof ambit === 'string' ? ambit : String(ambit);
+                    const ambitLower = ambitStr.toLowerCase();
+                    const ambitIconClass = AMBIT_ICON_CLASSES[ambitLower] || 'sui-icon-space';
+                    return `<i class="sui-icon ${ambitIconClass}"></i>`;
                 }).join('');
                 damageHTML += `${structType.counter_attack} DMG ${regularIcons} `;
             }
 
             if (sameAmbits.length > 0) {
                 const sameIcons = sameAmbits.map(ambit => {
-                    const ambitLower = ambit.toLowerCase();
-                    return AMBIT_ICONS[ambitLower] || '🚀';
+                    // Ensure ambit is a string and lowercase
+                    const ambitStr = typeof ambit === 'string' ? ambit : String(ambit);
+                    const ambitLower = ambitStr.toLowerCase();
+                    const ambitIconClass = AMBIT_ICON_CLASSES[ambitLower] || 'sui-icon-space';
+                    return `<i class="sui-icon ${ambitIconClass}"></i>`;
                 }).join('');
                 damageHTML += `${structType.counter_attack_same_ambit} DMG ${sameIcons}`;
             }
         } else {
             const ambitIcons = weaponAmbits.map(ambit => {
-                const ambitLower = ambit.toLowerCase();
-                return AMBIT_ICONS[ambitLower] || '🚀';
+                // Ensure ambit is a string and lowercase
+                const ambitStr = typeof ambit === 'string' ? ambit : String(ambit);
+                const ambitLower = ambitStr.toLowerCase();
+                const ambitIconClass = AMBIT_ICON_CLASSES[ambitLower] || 'sui-icon-space';
+                return `<i class="sui-icon ${ambitIconClass}"></i>`;
             }).join('');
             damageHTML = `${structType.counter_attack} DMG ${ambitIcons}`;
         }
 
+        // Use human-readable label, fallback to type if label not available
+        const displayLabel = structType.passive_weaponry_label || structType.passive_weaponry;
+
         return `
             <div class="sui-cheatsheet-property">
                 <div class="sui-cheatsheet-property-icon">
-                    ${iconEmoji}
+                    <i class="sui-icon sui-icon-md ${iconClass}"></i>
                 </div>
                 <div class="sui-cheatsheet-property-info">
-                    <div>${structType.passive_weaponry_label || structType.passive_weaponry}</div>
+                    <div>${displayLabel}</div>
                     <div>
                         ${damageHTML}
                     </div>
@@ -366,15 +439,17 @@ class CheatsheetBuilder {
         }
 
         const iconClass = STRUCT_EQUIPMENT_ICON_MAP[structType.unit_defenses] || 'icon-armour';
-        const iconEmoji = ICON_TO_EMOJI[iconClass] || '🛡️';
+
+        // Use human-readable label, fallback to type if label not available
+        const displayLabel = structType.unit_defenses_label || structType.unit_defenses;
 
         return `
             <div class="sui-cheatsheet-property">
                 <div class="sui-cheatsheet-property-icon">
-                    ${iconEmoji}
+                    <i class="sui-icon sui-icon-md ${iconClass}"></i>
                 </div>
                 <div class="sui-cheatsheet-property-info">
-                    <div>${structType.unit_defenses_label || structType.unit_defenses}</div>
+                    <div>${displayLabel}</div>
                 </div>
             </div>
         `;
@@ -390,24 +465,30 @@ class CheatsheetBuilder {
             case 'noPlanetaryDefense':
                 return '';
             case 'defensiveCannon':
+                // Use human-readable label for defensive cannon
+                const defensiveCannonLabel = structType.planetary_defenses_label || 'Defensive Cannon';
+                const possibleAmbits = (structType.possible_ambit_array || []).map(a => a.toLowerCase());
                 return this.renderWeaponProperty(
                     structType.planetary_defenses,
-                    structType.planetary_defenses_label,
+                    defensiveCannonLabel,
                     1,
                     AMBIT_ORDER.map(ambit => ambit.toLowerCase()),
-                    'noPlanetaryDefense'
+                    'noPlanetaryDefense',
+                    possibleAmbits
                 );
             default:
                 const iconClass = STRUCT_EQUIPMENT_ICON_MAP[structType.planetary_defenses] || 'icon-planetary-shield';
-                const iconEmoji = ICON_TO_EMOJI[iconClass] || '🛡️';
+
+                // Use human-readable label, fallback to type if label not available
+                const displayLabel = structType.planetary_defenses_label || structType.planetary_defenses;
 
                 return `
                     <div class="sui-cheatsheet-property">
                         <div class="sui-cheatsheet-property-icon">
-                            ${iconEmoji}
+                            <i class="sui-icon sui-icon-md ${iconClass}"></i>
                         </div>
                         <div class="sui-cheatsheet-property-info">
-                            <div>${structType.planetary_defenses_label || structType.planetary_defenses}</div>
+                            <div>${displayLabel}</div>
                         </div>
                     </div>
                 `;
@@ -425,16 +506,18 @@ class CheatsheetBuilder {
         }
 
         const iconClass = STRUCT_EQUIPMENT_ICON_MAP[structType.ore_reserve_defenses] || 'icon-planetary-shield';
-        const iconEmoji = ICON_TO_EMOJI[iconClass] || '🛡️';
         const planetaryShieldContribution = this.numberFormatter.format(structType.planetary_shield_contribution || 0);
+
+        // Use human-readable label, fallback to type if label not available
+        const displayLabel = structType.ore_reserve_defenses_label || structType.ore_reserve_defenses;
 
         return `
             <div class="sui-cheatsheet-property">
                 <div class="sui-cheatsheet-property-icon">
-                    ${iconEmoji}
+                    <i class="sui-icon sui-icon-md ${iconClass}"></i>
                 </div>
                 <div class="sui-cheatsheet-property-info">
-                    <div>${structType.ore_reserve_defenses_label || structType.ore_reserve_defenses}</div>
+                    <div>${displayLabel}</div>
                     <div>+${planetaryShieldContribution} Planetary Defense</div>
                 </div>
             </div>
@@ -452,12 +535,14 @@ class CheatsheetBuilder {
         }
 
         const iconClass = STRUCT_EQUIPMENT_ICON_MAP[structType.power_generation] || 'icon-refine';
-        const iconEmoji = ICON_TO_EMOJI[iconClass] || '⚙️';
+
+        // Use human-readable label if available, otherwise use default text
+        const powerLabel = structType.power_generation_label || 'Power Generation';
 
         return `
             <div class="sui-cheatsheet-property">
                 <div class="sui-cheatsheet-property-icon">
-                    ⚡
+                    <i class="sui-icon sui-icon-md icon-send-alpha"></i>
                 </div>
                 <div class="sui-cheatsheet-property-info">
                     <div>Consume Alpha</div>
@@ -465,10 +550,10 @@ class CheatsheetBuilder {
             </div>
             <div class="sui-cheatsheet-property">
                 <div class="sui-cheatsheet-property-icon">
-                    ${iconEmoji}
+                    <i class="sui-icon sui-icon-md ${iconClass}"></i>
                 </div>
                 <div class="sui-cheatsheet-property-info">
-                    <div>+${structType.generating_rate || 0} KW Per Alpha</div>
+                    <div>${powerLabel}: +${structType.generating_rate || 0} KW Per Alpha</div>
                 </div>
             </div>
         `;
@@ -486,11 +571,11 @@ class CheatsheetBuilder {
      * @returns {string} HTML
      */
     renderContentHTML(titleText, batteryCost, energyCost, descriptionText, contextualMessageText, propertySectionHTML, structImageHTML) {
+        // Note: structImageHTML is kept for API compatibility but not rendered to match webapp
+        // Add sui-theme-player class so battery filled chunks display correctly
         return `
-            <div class="sui-cheatsheet">
+            <div class="sui-cheatsheet sui-theme-player">
                 <div class="sui-cheatsheet-top-frame"></div>
-                
-                ${structImageHTML ? `<div style="padding: 16px; display: flex; justify-content: center; background: var(--surface-default, #1a1a1a);">${structImageHTML}</div>` : ''}
                 
                 ${this.renderTitleHTML(titleText, batteryCost, energyCost)}
                 
@@ -512,13 +597,17 @@ class CheatsheetBuilder {
      */
     async buildStructCheatsheet(structType) {
         let propertiesHTML = '';
+        
+        // Get possible ambits (for resolving "local")
+        const possibleAmbits = (structType.possible_ambit_array || []).map(a => a.toLowerCase());
 
         propertiesHTML += this.renderWeaponProperty(
             structType.primary_weapon,
             structType.primary_weapon_label,
             structType.primary_weapon_damage,
             structType.primary_weapon_ambits_array || [],
-            'noActiveWeaponry'
+            'noActiveWeaponry',
+            possibleAmbits
         );
 
         propertiesHTML += this.renderWeaponProperty(
@@ -526,7 +615,8 @@ class CheatsheetBuilder {
             structType.secondary_weapon_label,
             structType.secondary_weapon_damage,
             structType.secondary_weapon_ambits_array || [],
-            'noActiveWeaponry'
+            'noActiveWeaponry',
+            possibleAmbits
         );
 
         propertiesHTML += this.renderPassiveWeaponProperty(structType);

@@ -34,10 +34,8 @@ module.exports = {
             const structTypes = await fetchStructTypeData.forAutocomplete(focusedValue);
 
             const choices = structTypes.map(row => {
-                const emojiKey = row.icon;
-                const emoji = EMOJIS[emojiKey] || '🏗️';
                 return {
-                    name: `${emoji} ${row.type}`,
+                    name: `${row.type}`,
                     value: row.id.toString()
                 };
             });
@@ -54,7 +52,7 @@ module.exports = {
      * @param {Object} interaction - Discord slash command interaction
      */
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: false });
+        await interaction.deferReply();
 
         try {
             const structTypeId = interaction.options.getString('struct_type');
@@ -93,7 +91,6 @@ module.exports = {
             // Create embed
             const embed = new EmbedBuilder()
                 .setTitle(`${EMOJIS.STRUCT?.PLANETARY || '🏗️'} ${structTypeData.type} Specifications`)
-                .setDescription(`**${structTypeData.class || structTypeData.type}**`)
                 .setImage(`attachment://${attachment.name}`)
                 .setColor(0x00AE86) // SUI primary color
                 .setFooter({ text: 'Structs Discord Bot' });
